@@ -3,6 +3,8 @@ import { useGymStore } from '@/lib/store';
 import SessionView from '@/features/session/SessionView';
 import './App.css';
 
+alert('App component loaded');
+
 const tabs = [
   { id: 'plan', label: 'План' },
   { id: 'session', label: 'Тренировка' },

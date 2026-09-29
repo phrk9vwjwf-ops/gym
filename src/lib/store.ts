@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { db, type Exercise, type ProgramDay, type ProgramItem, type Session, type SetEntry, type BodyWeight, type MaxTest, type Settings } from '../db';
+import { DEFAULT_EXERCISES, DEFAULT_PROGRAM } from '@/lib/seed';
 
 interface GymState {
   ready: boolean;
@@ -18,38 +19,18 @@ export const useGymStore = create<GymState>((set, get) => ({
 
   init: async () => {
     try {
-      // Ensure exercises table seeded
+      // Seed exercises if empty
       const exCount = await db.exercises.count();
       if (exCount === 0) {
-        const seed = await import('../lib/seed');
-        const exerciseMap: Record<string, Exercise> = {};
-        for (const dayId of ['mon', 'wed', 'fri'] as const) {
-          const day = seed.DEFAULT_PROGRAM[dayId];
-          for (const item of day.items) {
-            if (!exerciseMap[item.exerciseId]) {
-              // Need to guess muscle etc from seed? We'll placeholder.
-              exerciseMap[item.exerciseId] = {
-                id: item.exerciseId,
-                name: item.exerciseId, // temporary
-                muscle: 'chest', // placeholder
-                cue: '',
-                unit: 'kg'
-              };
-            }
-          }
-        }
-        // Better: we could extract from seed but for now placeholder.
-        // Insert all
-        for (const ex of Object.values(exerciseMap)) {
+        for (const ex of DEFAULT_EXERCISES) {
           await db.exercises.put(ex);
         }
       }
       // Seed program if empty
-      const programCount = await db.program.count();
-      if (programCount === 0) {
-        const seed = await import('../lib/seed');
+      const progCount = await db.program.count();
+      if (progCount === 0) {
         for (const dayId of ['mon', 'wed', 'fri'] as const) {
-          const day = seed.DEFAULT_PROGRAM[dayId];
+          const day = DEFAULT_PROGRAM[dayId];
           await db.program.put({ id: dayId, ...day });
         }
       }
