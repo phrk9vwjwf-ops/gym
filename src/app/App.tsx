@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useGymStore } from '../lib/store';
-import SessionView from '../features/session/SessionView';
+import { useGymStore } from '@/lib/store';
+import SessionView from '@/features/session/SessionView';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './App.css';
 
 const tabs = [
@@ -13,6 +14,7 @@ const tabs = [
 
 export const App: React.FC = () => {
   const ready = useGymStore((s) => s.ready);
+  const error = useGymStore((s) => s.error);
   const [activeTab, setActiveTab] = useState<string>('session');
 
   useEffect(() => {
@@ -21,6 +23,14 @@ export const App: React.FC = () => {
   }, []);
 
   if (!ready) {
+    if (error) {
+      return (
+        <div className="app">
+          <h2>Ошибка инициализации</h2>
+          <p>{error}</p>
+        </div>
+      );
+    }
     return <div className="app">Загрузка...</div>;
   }
 
@@ -44,11 +54,13 @@ export const App: React.FC = () => {
       </nav>
 
       <main className="app-content">
-        {activeTab === 'plan' && <section>План тренировок</section>}
-        {activeTab === 'session' && <SessionView />}
-        {activeTab === 'history' && <section>График прогресса</section>}
-        {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
-        {activeTab === 'more' && <section>Настройки и другое</section>}
+        <ErrorBoundary fallback={<div><h2>Что-то пошло не так</h2><p>Смотрите консоль для деталей.</p></div>}>
+          {activeTab === 'plan' && <section>План тренировок</section>}
+          {activeTab === 'session' && <SessionView />}
+          {activeTab === 'history' && <section>График прогресса</section>}
+          {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
+          {activeTab === 'more' && <section>Настройки и другое</section>}
+        </ErrorBoundary>
       </main>
     </div>
   );
