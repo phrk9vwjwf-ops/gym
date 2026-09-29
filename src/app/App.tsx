@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
 import SessionView from '@/features/session/SessionView';
 import ChartsView from '@/features/charts/ChartsView';
+import MoreView from '@/features/more/MoreView';
+import NutritionView from '@/features/nutrition/NutritionView';
 import './App.css';
 
 const tabs = [
@@ -68,8 +70,8 @@ export const App: React.FC = () => {
         {activeTab === 'plan' && <section>План тренировок</section>}
         {activeTab === 'session' && <SessionView />}
         {activeTab === 'history' && <ChartsView />}
-        {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
-        {activeTab === 'more' && <section>Настройки и другое</section>}
+        {activeTab === 'nutrition' && <NutritionView />}
+        {activeTab === 'more' && <MoreView />}
       </main>
     </div>
   );
