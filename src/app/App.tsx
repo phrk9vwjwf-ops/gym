@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useGymStore } from '../lib/store';
+import SessionView from '../features/session/SessionView';
 import './App.css';
 
 const tabs = [
@@ -10,7 +12,17 @@ const tabs = [
 ];
 
 export const App: React.FC = () => {
+  const ready = useGymStore((s) => s.ready);
   const [activeTab, setActiveTab] = useState<string>('session');
+
+  useEffect(() => {
+    // Initialize store on mount
+    useGymStore.getState().init();
+  }, []);
+
+  if (!ready) {
+    return <div className="app">Загрузка...</div>;
+  }
 
   return (
     <div className="app">
@@ -33,7 +45,7 @@ export const App: React.FC = () => {
 
       <main className="app-content">
         {activeTab === 'plan' && <section>План тренировок</section>}
-        {activeTab === 'session' && <section>Тренировка</section>}
+        {activeTab === 'session' && <SessionView />}
         {activeTab === 'history' && <section>График прогресса</section>}
         {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
         {activeTab === 'more' && <section>Настройки и другое</section>}

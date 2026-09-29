@@ -27,5 +27,8 @@
     "zustand": "^5.0.15"
   },
   "type": "module",
-  "homepage": "https://phrk9vwjwf-ops.github.io/gym/"
+  "homepage": "https://phrk9vwjwf-ops.github.io/gym/",
+  "dependencies": {
+    "date-fns": "^4.4.0"
+  }
 }
