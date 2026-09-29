@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
-import { format } from 'date-fns';
 
 export const SessionView: React.FC = () => {
-  const [dayId, setDayId] = useState<'mon' | 'wed' | 'fri' | null>(null);
+  const [dayId, setDayId] = useState<'mon' | 'wed' | 'fri'>('mon');
   const [program, setProgram] = useState<any>(null);
   const [today, setToday] = useState<string>('');
 
+  // Determine nearest training day: mon/wed/fri, default to mon, but if today is tue/thu/sat/sun show next
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     setToday(todayStr);
-    // Determine dayId based on weekday (0=Sun,1=Mon,...)
-    const day = new Date().getDay();
-    let id: 'mon' | 'wed' | 'fri' | null = null;
-    if (day === 1) id = 'mon';
+    const day = new Date().getDay(); // 0 Sun,1 Mon,2 Tue,3 Wed,4 Thu,5 Fri,6 Sat
+    let id: 'mon' | 'wed' | 'fri' = 'mon';
+    if (day === 0 || day === 2 || day === 4 || day === 6) {
+      // Sun/Tue/Thu/Sat -> next is Mon
+      id = 'mon';
+    } else if (day === 1) id = 'mon';
     else if (day === 3) id = 'wed';
     else if (day === 5) id = 'fri';
     setDayId(id);
@@ -28,8 +30,8 @@ export const SessionView: React.FC = () => {
     }
   }, [dayId]);
 
-  if (!dayId || !program) {
-    return <div className="session-view">Сегодня нет тренировки</div>;
+  if (!program) {
+    return <div className="session-view">Загрузка программы...</div>;
   }
 
   return (
@@ -38,6 +40,26 @@ export const SessionView: React.FC = () => {
         <div>
           <h2>{program.title}</h2>
           <p className="lead">{program.lead}</p>
+        </div>
+        <div className="segments">
+          <button
+            className={dayId === 'mon' ? 'active' : ''}
+            onClick={() => setDayId('mon')}
+          >
+            Пн
+          </button>
+          <button
+            className={dayId === 'wed' ? 'active' : ''}
+            onClick={() => setDayId('wed')}
+          >
+            Ср
+          </button>
+          <button
+            className={dayId === 'fri' ? 'active' : ''}
+            onClick={() => setDayId('fri')}
+          >
+            Пт
+          </button>
         </div>
         <button className="pri" onClick={handleStart}>
           Начать тренировку
@@ -74,7 +96,6 @@ export const SessionView: React.FC = () => {
   );
 
   async function handleStart() {
-    // Create a new session
     const id = await useGymStore.getState().addSession({
       date: today,
       dayId,
@@ -82,7 +103,6 @@ export const SessionView: React.FC = () => {
       finishedAt: null,
       note: '',
     });
-    // TODO: navigate to active session screen
     alert(`Сессия создана: ${id}`);
   }
 };
