@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
 import SessionView from '@/features/session/SessionView';
+import ChartsView from '@/features/charts/ChartsView';
 import './App.css';
 
 const tabs = [
@@ -66,7 +67,7 @@ export const App: React.FC = () => {
       <main className="app-content">
         {activeTab === 'plan' && <section>План тренировок</section>}
         {activeTab === 'session' && <SessionView />}
-        {activeTab === 'history' && <section>График прогресса</section>}
+        {activeTab === 'history' && <ChartsView />}
         {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
         {activeTab === 'more' && <section>Настройки и другое</section>}
       </main>

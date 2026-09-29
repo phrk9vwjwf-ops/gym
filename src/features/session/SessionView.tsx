@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGymStore } from '@/lib/store';
 
 export const SessionView: React.FC = () => {
@@ -8,6 +8,11 @@ export const SessionView: React.FC = () => {
   const [today, setToday] = useState<string>('');
   const [activeSession, setActiveSession] = useState<any>(null);
   const [sets, setSets] = useState<any[]>([]);
+  // Rest timer state
+  const [restTimeLeft, setRestTimeLeft] = useState<number>(0);
+  const [isResting, setIsResting] = useState<boolean>(false);
+  const restIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastCompletedSetIndex, setLastCompletedSetIndex] = useState<number>(-1);
 
   // Determine nearest training day: mon/wed/fri, default to mon, but if today is tue/thu/sat/sun show next
   useEffect(() => {
@@ -51,6 +56,48 @@ export const SessionView: React.FC = () => {
     });
   }, []);
 
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (restIntervalRef.current) {
+        clearInterval(restIntervalRef.current);
+        restIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  const startRestTimer = (restSec: number) => {
+    setRestTimeLeft(restSec);
+    setIsResting(true);
+    if (restIntervalRef.current) {
+      clearInterval(restIntervalRef.current);
+    }
+    restIntervalRef.current = setInterval(() => {
+      setRestTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(restIntervalRef.current!);
+          restIntervalRef.current = null;
+          setIsResting(false);
+          // Vibrate if supported
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]); // short pattern
+          }
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+  };
+
+  const skipRest = () => {
+    if (restIntervalRef.current) {
+      clearInterval(restIntervalRef.current);
+      restIntervalRef.current = null;
+    }
+    setIsResting(false);
+    setRestTimeLeft(0);
+  };
+
   if (!program) {
     return <div className="session-view">Загрузка программы...</div>;
   }
@@ -59,6 +106,31 @@ export const SessionView: React.FC = () => {
   if (activeSession) {
     return (
       <section className="session-view">
+        {/* Rest timer overlay */}
+        {isResting && (
+          <div className="rest-timer-overlay">
+            <div className="rest-timer-circle">
+              <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#95A2AE" strokeWidth="8" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#5AA9F5"
+                  strokeWidth="8"
+                  strokeDasharray={251.2}
+                  strokeDashoffset={251.2 * (1 - restTimeLeft / (program.items.find((i: any) => i.exerciseId === sets[lastCompletedSetIndex]?.exerciseId)?.restSec || 15))}
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div className="rest-timer-text">{restTimeLeft}с</div>
+            </div>
+            <button className="rest-timer-skip" onClick={skipRest}>
+              Пропустить
+            </button>
+          </div>
+        )}
         <div className="dayhead">
           <div>
             <h2>Тренировка в процессе</h2>
@@ -84,13 +156,33 @@ export const SessionView: React.FC = () => {
                 {set.t && <p className="tip">{set.t}</p>}
                 <div className="wt">
                   <div>
-                    Вес: <input type="number" step="0.5" min="0" placeholder="кг" />
+                    Вес: <input type="number" step="0.5" min="0" placeholder="кг" value={set.weight ?? ''} onChange={(e) => {
+                      const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                      // update set weight optimistically? We'll just store locally and push to db on completion
+                    }} />
                   </div>
                   <div>
-                    Повторы: <input type="number" step="1" min="0" placeholder="повт" />
+                    Повторы: <input type="number" step="1" min="0" placeholder="повт" value={set.reps ?? ''} onChange={(e) => {
+                      const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                    }} />
                   </div>
                   <button className="pri" onClick={() => {
-                    // TODO: implement set completion
+                    // Complete set: save to DB, start rest timer
+                    const updatedSet = {
+                      ...set,
+                      weight: set.weight ?? null, // keep as is
+                      reps: set.reps ?? 0,
+                      done: true,
+                      at: Date.now()
+                    };
+                    useGymStore.getState().addSet(updatedSet).then(() => {
+                      setSets((prev) => prev.map((s, i) => (i === idx ? updatedSet : s)));
+                      setLastCompletedSetIndex(idx);
+                      // Find restSec from program item
+                      const item = program.items.find((i: any) => i.exerciseId === set.exerciseId);
+                      const restSec = item ? item.restSec : 15;
+                      startRestTimer(restSec);
+                    });
                   }}>
                     Завершить подход
                   </button>
@@ -179,5 +271,3 @@ export const SessionView: React.FC = () => {
     // TODO: navigate to active session screen (will reload via useEffect)
   }
 };
-
-export default SessionView;
