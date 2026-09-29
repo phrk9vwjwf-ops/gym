@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Программа на массу</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Масса">
+<meta name="theme-color" content="#1C2733">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACEklEQVR42u3cMVLCYBCGYdlJ4x3oOQAV18EzUDvWXgG9jjeC1gsYzThm/v3i87RQsMs7EEgmu/3h+ABfKStAHIgDcSAOxIE4EAfiQByIA8SBOBAH4kAciANxIA7EgThAHIgDcSAOxIE4EAfiQByIA8SBOBAH4kAciANxIA7EgTgQB4gDcSAOxIE4EAfiQByIA3GAOBAH4kAciANxIA7EgTgQB4iDeVPPl/Xx+vj9E06Xe9aiEyeqxD0ufI6JthbH8h2l9JE7UYXuMaWP6Ikqd4/9+0ifyK8VxIE4+EPr/s/x9PI+99Db89n2m2+yhszz46N02GQNmUcfEZusUfPoo/8mHZAiDsSBOBAHQ00bmCHr2g6fHN7gLWxjsojOfVxvPjnwtYI4EAfiQBwgDsSBOBAH4kAciANxII61nC73uNv0/JO1VJ9dCKLbNiarXE/6dUyOORAH4kAciIPtxbH8XjPu79N5kzVwKmU032SNmkoZ/Tc5Da+etpt0QIo4EAfbjON35886n85Nn6iit9n/RH/0RJW7zZRLQHInqtBtZl0cFDrRbn84OvLCrxXEgTgQB+JAHIgDcSAOxAHiQByIA3EgDsSBOBAH4kAcIA7EgTgQB+JAHIgDcSAOxIE4QByIA3EgDsSBOBAH4kAciAPEgTgQB+JAHIgDcSAOxIE4QByIA3EgDsSBOBAH4kAciANxwIxPME96kspFR84AAAAASUVORK5CYII=">
+<style>
+:root{
+  --bg:#E3E5E6; --paper:#F4F5F5; --ink:#18222D; --muted:#56616C;
+  --steel:#2F5D8A; --steel-ink:#FFFFFF; --tape:#E3B23C; --tape-ink:#1E1A10; --line:#C7CCD0; --warn:#B3452F;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12181F; --paper:#1B232C; --ink:#E4E8EB; --muted:#9AA5AF;
+    --steel:#7FA8D1; --steel-ink:#0F1720; --tape:#E3B23C; --tape-ink:#1E1A10; --line:#2E3945; --warn:#E08B78;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12181F; --paper:#1B232C; --ink:#E4E8EB; --muted:#9AA5AF;
+  --steel:#7FA8D1; --steel-ink:#0F1720; --tape:#E3B23C; --tape-ink:#1E1A10; --line:#2E3945; --warn:#E08B78;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+h1,h2,h3,.sets,.num,.tab{font-weight:800;letter-spacing:-.02em}
+h1{text-transform:uppercase}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+
+header{padding:22px 0 6px}
+h1{font-size:clamp(1.9rem,8vw,3rem);line-height:1.02;margin:0 0 12px}
+.tape{display:inline-block;background:var(--tape);color:var(--tape-ink);font-weight:700;font-size:1rem;padding:6px 14px;transform:rotate(-1.5deg);margin:0 0 14px}
+.coach{border-left:4px solid var(--steel);padding:2px 0 2px 14px;margin:0;max-width:62ch}
+.coach p{margin:0 0 8px}
+.coach p:last-child{margin-bottom:0}
+.coach .sig{color:var(--muted);font-size:.95rem}
+.sync{display:block;color:var(--muted);font-size:.85rem;margin:10px 0 0}
+
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-top:12px}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:10px 0;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:.95rem;padding:9px 14px;border-radius:4px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--steel);color:var(--steel-ink);border-color:var(--steel)}
+.tab:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--tape);outline-offset:2px}
+
+section{display:none;padding:18px 0 56px}
+section.on{display:block}
+h2{font-size:1.6rem;line-height:1.12;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 16px}
+.warm{background:var(--paper);border:1px dashed var(--line);padding:10px 14px;margin:0 0 16px;font-size:.95rem}
+.dayhead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+
+ol.ex{list-style:none;margin:0;padding:0}
+.ex li{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px;margin:0 0 10px}
+.ex li.ss{border-left:6px solid var(--tape)}
+.row1{display:flex;gap:12px;align-items:baseline}
+.num{flex:0 0 auto;font-size:1.3rem;color:var(--steel);min-width:1.4em}
+h3{font-size:1.12rem;margin:0;line-height:1.25}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;margin:8px 0 6px}
+.sets{font-size:1.35rem}
+.rest{color:var(--muted);font-size:.95rem}
+.tip{margin:0 0 10px;font-size:.97rem;max-width:64ch}
+.wt{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-top:1px solid var(--line);padding-top:10px;font-size:.95rem}
+.wt s{color:var(--muted)}
+.wt label{display:flex;align-items:center;gap:8px;margin-left:auto}
+input[type=text],textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%}
+.wt input[type=text]{width:6.5em}
+textarea{resize:vertical;min-height:4.5em}
+
+.fields{display:grid;gap:8px}
+.fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media (max-width:520px){.f3{grid-template-columns:1fr 1fr}}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+button{font:inherit;background:var(--paper);border:1px solid var(--line);color:var(--ink);padding:8px 13px;border-radius:4px;cursor:pointer}
+button.pri{background:var(--steel);border-color:var(--steel);color:var(--steel-ink)}
+button.danger{color:var(--warn)}
+button.icon{min-width:44px}
+
+table{border-collapse:collapse;width:100%;background:var(--paper)}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px;margin:0 0 18px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:.95rem}
+th{font-weight:700}
+tr:last-child td{border-bottom:0}
+td.c{text-align:center}
+input[type=checkbox]{width:22px;height:22px;accent-color:var(--steel)}
+.phase{font-weight:700}
+.block{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin:0 0 14px}
+.block h3{margin:0 0 6px}
+.block p{margin:0 0 8px;max-width:64ch}
+.block p:last-child{margin-bottom:0}
+.block ol{margin:0 0 8px;padding-left:1.3em}
+.block li{margin-bottom:4px}
+.tests{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tests label{display:flex;flex-direction:column;gap:4px;font-size:.95rem}
+.big{font-size:1.5rem;font-weight:800}
+footer{color:var(--muted);font-size:.9rem;padding:0 0 40px}
+.note{font-size:.9rem;color:var(--muted);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Масса.<br>Три дня в неделю.</h1>
+  <div class="tape">Недели 1–2: без героизма</div>
+  <div class="coach">
+    <p>Слушай, малец. Три-четыре месяца без зала — это не нокаут, это пропущенный раунд. Первые две недели работаешь на 60–70% от старых весов и уходишь из зала с ощущением, что мог ещё.</p>
+    <p class="sig">Пн — грудь и трицепс. Ср — спина и бицепс. Пт — добавка груди и плечи.</p>
+  </div>
+  <span class="sync" id="sync">Загружаю записи…</span>
+</header>
+
+<nav aria-label="Разделы">
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-nav="plan">План</button>
+    <button class="tab" role="tab" data-nav="mon">Пн · грудь, трицепс</button>
+    <button class="tab" role="tab" data-nav="wed">Ср · спина, бицепс</button>
+    <button class="tab" role="tab" data-nav="fri">Пт · грудь, плечи</button>
+    <button class="tab" role="tab" data-nav="bars">Турник и брусья</button>
+    <button class="tab" role="tab" data-nav="food">Еда</button>
+    <button class="tab" role="tab" data-nav="app">На iPhone</button>
+  </div>
+</nav>
+
+<section id="plan">
+  <h2>Как это работает</h2>
+  <p class="lead">Пн / Ср / Пт, между тренировками день отдыха. Отмечай сделанные тренировки.</p>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Неделя</th><th>Режим</th><th class="c">Пн</th><th class="c">Ср</th><th class="c">Пт</th></tr></thead>
+      <tbody id="weeks"></tbody>
+    </table>
+  </div>
+
+  <div class="block">
+    <h3>Почему грудь два раза</h3>
+    <p>Верх груди в приоритете, а мышца растёт от частоты. В понедельник — тяжёлый наклонный жим штангой на 6–8 повторов, в пятницу — гантели и кроссовер на 10–15. Между ними трое суток, восстановиться успеваешь. Трицепс и бицепс тоже получают нагрузку дважды: в свой день и на жимах-тягах.</p>
+  </div>
+  <div class="block">
+    <h3>Запас повторов</h3>
+    <p>«3–4 в запасе» значит: остановился, когда мог сделать ещё 3–4 чистых повтора. Недели 1–2 — запас 3–4, подходов на один меньше. Недели 3–7 — запас 1–2, полные подходы. Неделя 8 — половина подходов, веса те же, в пятницу тест турника и брусьев.</p>
+  </div>
+  <div class="block">
+    <h3>Как добавлять вес</h3>
+    <p>Во всех подходах сделал верх диапазона чисто (например, 4×8 при задании 6–8) — в следующий раз добавь: штанга +2,5 кг, гантели +1–2 кг, блок +1 плитка. Повторы снова падают к низу диапазона и растут обратно. Так и растёт масса.</p>
+  </div>
+  <div class="block">
+    <h3>Отдых между подходами</h3>
+    <p>Базовые (жимы, тяги, турник, брусья) — 2–3 минуты. Изоляция — 60–90 секунд.</p>
+  </div>
+  <div class="block">
+    <h3>Боль</h3>
+    <p>Жжение в мышце — норма. Острая боль в плече, локте или колене — не терпишь, меняешь упражнение или снижаешь вес. Крепатура первые 1–2 недели будет сильной, это нормально.</p>
+  </div>
+  <div class="block">
+    <h3>После 8-й недели</h3>
+    <p>Повторяешь недели 3–8 с новыми рабочими весами.</p>
+  </div>
+</section>
+
+<section id="mon"></section>
+<section id="wed"></section>
+<section id="fri"></section>
+
+<section id="bars">
+  <h2>Турник и брусья</h2>
+  <p class="lead">Повторы растут от частоты и чистой техники. Турник — среда и пятница, брусья — понедельник.</p>
+
+  <div class="block">
+    <h3>Твои максимумы</h3>
+    <p>Тест — пятница первой недели и пятница 8-й недели. Только чистые повторы.</p>
+    <div class="tests">
+      <label>Турник, нед 1<input type="text" inputmode="numeric" data-test="pull1"></label>
+      <label>Турник, нед 8<input type="text" inputmode="numeric" data-test="pull8"></label>
+      <label>Брусья, нед 1<input type="text" inputmode="numeric" data-test="dip1"></label>
+      <label>Брусья, нед 8<input type="text" inputmode="numeric" data-test="dip8"></label>
+    </div>
+  </div>
+
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>День</th><th>Турник</th><th>Брусья</th></tr></thead>
+      <tbody>
+        <tr><td class="phase">Пн</td><td>—</td><td>Объём, корпус вперёд: 3 подхода, стоп за 2 до отказа. Работает грудь.</td></tr>
+        <tr><td class="phase">Ср</td><td>Лестница 1-2-3-4-5. Нед 1–2 — 2 лестницы до 4. Нед 3–7 — 3 лестницы, верхняя ступень +1 каждые 2 недели.</td><td>—</td></tr>
+        <tr><td class="phase">Пт</td><td>Максимум: 3 подхода — широкий, нейтральный, обратный хват. Нед 1–2 — 2 подхода, за 1–2 до отказа.</td><td>По желанию: 2 подхода за 2 до отказа, если трицепс не забит.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="block">
+    <h3>Когда вешать вес</h3>
+    <p>Брусья: с 5-й недели, если делаешь 15+ чистых — один подход 6–8 с поясом +5 кг перед объёмными. Потом снимаешь пояс, и вдруг повторов становится больше. Турник вес не вешаем: там растим лестницу и максимум в пятницу.</p>
+  </div>
+  <div class="block">
+    <h3>Техника, которая даёт повторы</h3>
+    <p>Турник: внизу руки прямые, подбородок выше перекладины, без раскачки. Сначала тянешь лопатки вниз, потом сгибаешь руки.</p>
+    <p>Брусья: плечо опускается до уровня локтя, вверху руки выпрямлены полностью. Ниже не надо. Наклон вперёд грузит грудь, вертикальный корпус — трицепс.</p>
+  </div>
+  <div class="block">
+    <h3>Если есть турник дома</h3>
+    <p>В дни без зала: 3–5 подходов за день по 30–40% от максимума, между ними несколько часов. Никаких отказов — просто «смазываешь» движение. Для роста количества повторов работает отлично.</p>
+  </div>
+</section>
+
+<section id="food">
+  <h2>Еда</h2>
+  <p class="lead">Без профицита массы не будет, хоть живи в зале. Считай от своего веса.</p>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Что</th><th>Сколько</th><th>Пример на 75 кг</th></tr></thead>
+      <tbody>
+        <tr><td>Калории</td><td>вес × 35–38 ккал</td><td class="big">2600–2850</td></tr>
+        <tr><td>Белок</td><td>1,8–2 г на кг</td><td>135–150 г</td></tr>
+        <tr><td>Жиры</td><td>0,9–1 г на кг</td><td>70–75 г</td></tr>
+        <tr><td>Углеводы</td><td>всё остальное</td><td>≈ 350 г</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="block">
+    <h3>Контроль</h3>
+    <p>Цель — плюс 0,25–0,5 кг в неделю. Взвешивайся утром натощак 3–4 раза в неделю и смотри на среднее, а не на один день. Две недели вес стоит — добавь 200 ккал. Растёт быстрее 0,5 кг в неделю — убавь 200, это уже жир.</p>
+  </div>
+  <div class="block">
+    <h3>Остальное</h3>
+    <p>Нормальный приём пищи за 1,5–2 часа до зала. Сон 7–9 часов — мышцы растут не в зале, а после него. Креатин моногидрат 3–5 г в день, каждый день, время не важно.</p>
+  </div>
+</section>
+
+<section id="app">
+  <h2>Иконка и сохранение</h2>
+  <div class="block">
+    <h3>Где теперь лежат записи</h3>
+    <p>Веса, галочки и правки сохраняются в твой аккаунт на сервере, а не в памяти браузера. Открыл с другого устройства — всё на месте. Строка под заголовком показывает состояние: «сохранено» значит записалось.</p>
+    <p>Если связи нет, страница работает от локальной копии и допишет всё в аккаунт, как только связь появится.</p>
+  </div>
+  <div class="block">
+    <h3>Иконка на экран «Домой»</h3>
+    <ol>
+      <li>Открой страницу в Safari.</li>
+      <li>«Поделиться» → «На экран „Домой“» → «Добавить».</li>
+    </ol>
+    <p>Адресная строка останется, потому что страница живёт на claude.ai. Убрать её можно только если положить файл на свой адрес — GitHub Pages или Netlify. Скажи, когда будешь у компьютера, разложу по шагам.</p>
+  </div>
+  <div class="block">
+    <h3>Резервная копия</h3>
+    <p>На всякий случай: скопируй код и сохрани где-нибудь в заметках.</p>
+    <div class="tools">
+      <button type="button" id="exp" class="pri">Скопировать мои данные</button>
+      <button type="button" id="imp">Вставить и применить</button>
+    </div>
+    <label class="note" for="dump">Код программы</label>
+    <textarea id="dump" spellcheck="false" aria-label="Код программы"></textarea>
+    <p class="note" id="msg"></p>
+  </div>
+  <div class="block">
+    <h3>Вернуть исходную программу</h3>
+    <p>Сбросит названия, подходы и заметки к исходным. Веса и галочки тоже обнулятся.</p>
+    <div class="tools"><button type="button" id="reset" class="danger">Сбросить всё</button></div>
+  </div>
+</section>
+
+<footer>Записи хранятся в твоём аккаунте.</footer>
+</div>
+
+<script>
+var DEFAULT = {
+  mon: {
+    title: "Понедельник — грудь и трицепс",
+    lead: "Тяжёлый день груди с упором на верх, брусья на объём. ≈ 65 минут.",
+    warm: "Разминка: 5–7 минут кардио, тяга каната к лицу 2×15 с лёгким весом, 2 лёгких подхода наклонного жима.",
+    ex: [
+      {n:"Жим штанги на наклонной скамье 30°", s:"4×6–8", r:"2–3 мин", w:"32,5 кг", was:"45", t:"Главное упражнение недели на верх груди. Угол 30°, не выше — иначе работают плечи. Гриф опускай под ключицы, лопатки сведены."},
+      {n:"Жим в Хаммере на наклонной", s:"3×8–10", r:"2 мин", w:"по тренажёру", was:"", t:"Если наклонного Хаммера нет — горизонтальный. Тренажёр даёт добить грудь без страха уронить вес, можно работать ближе к отказу."},
+      {n:"Бабочка", s:"3×12–15", r:"75 с", w:"10 кг", was:"10", t:"Локти зафиксированы на уровне плеч. В конце сведения задержись на секунду и сожми грудь."},
+      {n:"Брусья, корпус вперёд — объём", s:"3 подхода", r:"2 мин", w:"свой вес", was:"", t:"Наклон вперёд переводит нагрузку на грудь. Стоп за 2 повтора до отказа. Плечо опускай до уровня локтя, ниже не надо."},
+      {n:"Разгибание гантели из-за головы", s:"3×10–12", r:"75 с", w:"8 кг", was:"12", t:"Длинная головка трицепса. Локоть смотрит вверх и не разъезжается, вниз опускай медленно, вверху выпрямляй руку полностью."},
+      {n:"Разгибания на канате стоя", s:"3×12–15", r:"60 с", w:"10 кг", was:"15", t:"Корпус вертикально, локти прижаты к бокам — работает боковая головка, а не та же длинная, что в прошлом упражнении. Внизу разводи канат и держи секунду."}
+    ]
+  },
+  wed: {
+    title: "Среда — спина и бицепс",
+    lead: "Вся спина: ширина, толщина, низ. Турник лестницей. ≈ 75 минут.",
+    warm: "Разминка: 5–7 минут кардио, вращения плечами, 2 лёгких подхода тяги.",
+    ex: [
+      {n:"Подтягивания — лестница", s:"1-2-3-4-5", r:"по самочувствию", w:"свой вес", was:"", t:"Между ступенями отдыхай примерно 10 секунд за каждый сделанный повтор. Нед 1–2: 2 лестницы до 4. Нед 3–7: 3 лестницы, верхняя ступень +1 каждые 2 недели."},
+      {n:"Гиперэкстензия", s:"3×15", r:"60 с", w:"свой вес", was:"", t:"Низ спины. Поднимаешься до прямой линии корпуса, выше не надо. Когда 15 идут легко — блин 5–10 кг на грудь."},
+      {n:"Тяга штанги в наклоне обратным хватом", s:"4×6–8", r:"2–3 мин", w:"40 кг", was:"50–55", t:"Толщина спины. Наклон около 45°, тянешь к поясу, локти вдоль корпуса. Спина округлилась — сбрасывай вес."},
+      {n:"Вертикальный блок узким хватом", s:"3×10–12", r:"90 с", w:"35–40 кг", was:"50", t:"Хват узкий или нейтральный — широким ты уже подтягивался в начале, незачем дублировать вектор. Тянешь к верху груди, локти идут вниз."},
+      {n:"Горизонтальная тяга", s:"3×10–12", r:"90 с", w:"≈40 кг", was:"55", t:"Середина спины. Грудь вперёд, в конце своди лопатки и держи секунду. Корпусом не раскачивайся."},
+      {n:"Пуловер на верхнем блоке", s:"3×12–15", r:"60 с", w:"20 кг", was:"30", t:"Руки почти прямые, ведёшь канат к бёдрам широчайшими. Даёт ширину спины."},
+      {n:"Подъём EZ-штанги стоя", s:"3×8–10", r:"90 с", w:"70% от старого", was:"15", t:"Локти не уходят вперёд, корпус не качается. Опускай 2–3 секунды."},
+      {n:"Молотки", s:"3×10–12", r:"60 с", w:"8–10 кг", was:"12", t:"Поочерёдно, без раскачки. Качают брахиалис — рука становится толще."}
+    ]
+  },
+  fri: {
+    title: "Пятница — добавка груди и плечи",
+    lead: "Лёгкий по весам, объёмный день. Средняя и задняя дельта, турник на максимум. ≈ 70 минут.",
+    warm: "Разминка: 5–7 минут кардио, тяга каната к лицу 2×15, 2 лёгких подхода наклонного жима гантелей.",
+    ex: [
+      {n:"Жим гантелей на наклонной скамье 30°", s:"4×8–10", r:"2 мин", w:"10 кг", was:"12", t:"Второй заход на верх груди за неделю, но в другом диапазоне. Внизу гантели у груди, локти под 45° к корпусу."},
+      {n:"Сведение в кроссовере снизу вверх", s:"3×12–15", r:"75 с", w:"7,5–10 кг", was:"", t:"Тросы снизу, руки идут вверх к подбородку. Чистая добивка верха груди — вес вторичен, чувствуй мышцу."},
+      {n:"Жим гантелей сидя", s:"4×8–10", r:"2 мин", w:"10–12 кг", was:"12–16", t:"Без вертикального жима дельты массу не наберут, махи этого не заменят. Спинка почти вертикально, опускай до уровня ушей."},
+      {n:"Махи в кроссовере по одной руке", s:"3×12–15", r:"60 с на руку", w:"5 кг", was:"7", t:"Средняя дельта. Трос из нижнего блока за спиной, ведёшь локтем. Раскачиваешься — вес большой."},
+      {n:"Протяжка штанги к груди", s:"3×12", r:"75 с", w:"20 кг", was:"", t:"Хват только широкий, выше уровня груди не тянешь — узкий хват и высокая протяжка выкручивают плечо. Локти всегда выше кистей."},
+      {n:"Обратная бабочка", s:"3×15–20", r:"60 с", w:"7,5 кг", was:"10", t:"Задняя дельта. Рукояти на уровне плеч, руки слегка согнуты, много повторов и чистая техника."},
+      {n:"Подтягивания на максимум", s:"3 подхода", r:"2–3 мин", w:"свой вес", was:"", t:"Широкий, нейтральный, обратный хват — по подходу. Каждый до последнего чистого повтора. Записывай числа, это твой прогресс."}
+    ]
+  }
+};
+
+var CACHE = "plan:v3";
+var DAY_IDS = ["mon","wed","fri"];
+var PH = ["Втягивание","Втягивание","Набор","Набор","Набор + вес на брусья","Набор","Набор","Разгрузка + тест"];
+
+function safe(fn, fb){ try { return fn(); } catch(e){ return fb; } }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function normalize(s){
+  if (!s || !s.days) return null;
+  for (var i = 0; i < DAY_IDS.length; i++){
+    var d = s.days[DAY_IDS[i]];
+    if (!d || !d.ex || !d.ex.length) return null;
+    d.ex.forEach(function(e){ if (e.my === undefined) e.my = ""; });
+  }
+  if (!s.checks) s.checks = {};
+  if (!s.tests) s.tests = {};
+  return s;
+}
+
+var state = normalize(safe(function(){ return JSON.parse(localStorage.getItem(CACHE)); }, null))
+         || { days: clone(DEFAULT), checks: {}, tests: {} };
+
+var editing = {}, doc = null, timer = null, touched = false;
+var syncEl = document.getElementById("sync");
+function status(t){ syncEl.textContent = t; }
+
+function cache(){ safe(function(){ localStorage.setItem(CACHE, JSON.stringify(state)); }); }
+
+function push(){
+  if (!doc){ status("сохранено на устройстве"); return; }
+  status("сохраняю…");
+  doc.set({ state: state, at: Date.now() }).then(function(){
+    status("сохранено");
+  }, function(err){
+    status("не сохранилось в аккаунт (" + (err && err.code ? err.code : "ошибка") + "), копия на устройстве");
+  });
+}
+
+function changed(){
+  touched = true;
+  cache();
+  clearTimeout(timer);
+  timer = setTimeout(push, 900);
+}
+
+function renderDay(id){
+  var d = state.days[id], sec = document.getElementById(id), ed = !!editing[id];
+  var h = '<div class="dayhead"><div><h2>'+esc(d.title)+'</h2><p class="lead">'+esc(d.lead)+'</p></div>'
+        + '<button type="button" class="'+(ed?'pri':'')+'" data-edit="'+id+'">'+(ed?'Готово':'Править')+'</button></div>'
+        + '<div class="warm">'+esc(d.warm)+'</div><ol class="ex">';
+  d.ex.forEach(function(e,i){
+    h += '<li'+(e.ss?' class="ss"':'')+'>';
+    if (!ed){
+      h += '<div class="row1"><span class="num">'+(i+1)+'</span><h3>'+esc(e.n)+'</h3></div>'
+        + '<div class="meta"><span class="sets">'+esc(e.s)+'</span><span class="rest">отдых '+esc(e.r)+'</span></div>'
+        + (e.t ? '<p class="tip">'+esc(e.t)+'</p>' : '')
+        + '<div class="wt"><span>Старт: <b>'+esc(e.w)+'</b>'+(e.was ? ' · было <s>'+esc(e.was)+'</s>' : '')+'</span>'
+        + '<label>Мой вес <input type="text" inputmode="decimal" data-my="'+id+':'+i+'" value="'+esc(e.my)+'" aria-label="Мой рабочий вес"></label></div>';
+    } else {
+      h += '<div class="fields">'
+        + '<label>Упражнение<input type="text" data-f="'+id+':'+i+':n" value="'+esc(e.n)+'"></label>'
+        + '<div class="f3">'
+        + '<label>Подходы<input type="text" data-f="'+id+':'+i+':s" value="'+esc(e.s)+'"></label>'
+        + '<label>Отдых<input type="text" data-f="'+id+':'+i+':r" value="'+esc(e.r)+'"></label>'
+        + '<label>Стартовый вес<input type="text" data-f="'+id+':'+i+':w" value="'+esc(e.w)+'"></label>'
+        + '</div>'
+        + '<label>Заметка<textarea data-f="'+id+':'+i+':t">'+esc(e.t)+'</textarea></label>'
+        + '</div>'
+        + '<div class="tools">'
+        + '<button type="button" class="icon" data-mv="'+id+':'+i+':-1" aria-label="Выше">↑</button>'
+        + '<button type="button" class="icon" data-mv="'+id+':'+i+':1" aria-label="Ниже">↓</button>'
+        + '<button type="button" class="danger" data-del="'+id+':'+i+'">Удалить</button>'
+        + '</div>';
+    }
+    h += '</li>';
+  });
+  h += '</ol>';
+  h += ed ? '<div class="tools"><button type="button" class="pri" data-add="'+id+'">Добавить упражнение</button></div>'
+          : '<p class="lead" style="margin-top:14px">По желанию в конце: пресс 3×15–20.</p>';
+  sec.innerHTML = h;
+}
+
+function renderWeeks(){
+  var tb = "";
+  PH.forEach(function(p,i){
+    tb += '<tr><td class="phase">'+(i+1)+'</td><td>'+p+'</td>';
+    DAY_IDS.forEach(function(d){
+      var k = (i+1)+":"+d;
+      tb += '<td class="c"><input type="checkbox" data-c="'+k+'"'+(state.checks[k]?" checked":"")+' aria-label="Неделя '+(i+1)+'"></td>';
+    });
+    tb += '</tr>';
+  });
+  document.getElementById("weeks").innerHTML = tb;
+}
+
+function renderTests(){
+  document.querySelectorAll("input[data-test]").forEach(function(inp){
+    inp.value = state.tests[inp.dataset.test] || "";
+  });
+}
+
+function renderAll(){ DAY_IDS.forEach(renderDay); renderWeeks(); renderTests(); }
+renderAll();
+
+document.addEventListener("input", function(ev){
+  var el = ev.target, p;
+  if (el.dataset.my){ p = el.dataset.my.split(":"); state.days[p[0]].ex[+p[1]].my = el.value; changed(); }
+  else if (el.dataset.f){ p = el.dataset.f.split(":"); state.days[p[0]].ex[+p[1]][p[2]] = el.value; changed(); }
+  else if (el.dataset.test){ state.tests[el.dataset.test] = el.value; changed(); }
+});
+document.addEventListener("change", function(ev){
+  if (ev.target.dataset.c){ state.checks[ev.target.dataset.c] = ev.target.checked; changed(); }
+});
+
+document.addEventListener("click", function(ev){
+  var b = ev.target.closest("button"); if (!b) return;
+  var p;
+  if (b.dataset.nav){ show(b.dataset.nav); window.scrollTo({top:0, behavior:"smooth"}); }
+  else if (b.dataset.edit){ editing[b.dataset.edit] = !editing[b.dataset.edit]; renderDay(b.dataset.edit); }
+  else if (b.dataset.add){
+    state.days[b.dataset.add].ex.push({n:"Новое упражнение", s:"3×10", r:"90 с", w:"", was:"", t:"", my:""});
+    changed(); renderDay(b.dataset.add);
+  }
+  else if (b.dataset.del){
+    p = b.dataset.del.split(":");
+    if (confirm("Удалить упражнение?")){ state.days[p[0]].ex.splice(+p[1],1); changed(); renderDay(p[0]); }
+  }
+  else if (b.dataset.mv){
+    p = b.dataset.mv.split(":");
+    var arr = state.days[p[0]].ex, i = +p[1], j = i + (+p[2]);
+    if (j >= 0 && j < arr.length){ var t = arr[i]; arr[i] = arr[j]; arr[j] = t; changed(); renderDay(p[0]); }
+  }
+});
+
+var tabs = document.querySelectorAll(".tab");
+function show(t){
+  tabs.forEach(function(b){ b.setAttribute("aria-selected", b.dataset.nav === t ? "true" : "false"); });
+  document.querySelectorAll("section").forEach(function(s){ s.classList.toggle("on", s.id === t); });
+  safe(function(){ localStorage.setItem("plan:tab", t); });
+}
+show(safe(function(){ return localStorage.getItem("plan:tab"); }, null) || "plan");
+
+var msg = document.getElementById("msg"), dump = document.getElementById("dump");
+function selectDump(){
+  safe(function(){ dump.focus(); dump.setSelectionRange(0, dump.value.length); });
+  msg.textContent = "Выдели текст в поле выше и скопируй вручную.";
+}
+document.getElementById("exp").addEventListener("click", function(){
+  dump.value = JSON.stringify(state);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(dump.value).then(function(){ msg.textContent = "Скопировано."; }, selectDump);
+  } else { selectDump(); }
+});
+document.getElementById("imp").addEventListener("click", function(){
+  var s = normalize(safe(function(){ return JSON.parse(dump.value); }, null));
+  if (!s){ msg.textContent = "Код не распознан. Вставь его целиком в поле выше."; return; }
+  state = s; renderAll(); changed(); msg.textContent = "Применено.";
+});
+document.getElementById("reset").addEventListener("click", function(){
+  if (!confirm("Сбросить программу, веса и отметки?")) return;
+  state = { days: clone(DEFAULT), checks: {}, tests: {} };
+  normalize(state); renderAll(); changed();
+});
+
+(function connect(){
+  if (!(window.claude && window.claude.use)){ status("сохраняю на устройстве"); return; }
+  window.claude.use("db").then(function(db){
+    if (!db){ status("сохраняю на устройстве"); return; }
+    doc = db.doc("plan/state");
+    return doc.get().then(function(snap){
+      if (snap && snap.exists && snap.data && snap.data.state && !touched){
+        var s = normalize(snap.data.state);
+        if (s){ state = s; renderAll(); cache(); status("записи загружены из аккаунта"); return; }
+      }
+      push();
+    });
+  }).catch(function(){ status("сохраняю на устройстве"); });
+})();
+</script>
+</body>
+</html>
