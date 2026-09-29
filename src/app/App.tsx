@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
 import SessionView from '@/features/session/SessionView';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './App.css';
 
 const tabs = [
@@ -15,19 +14,30 @@ const tabs = [
 export const App: React.FC = () => {
   const ready = useGymStore((s) => s.ready);
   const error = useGymStore((s) => s.error);
+  const [localReady, setLocalReady] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('session');
 
   useEffect(() => {
-    // Initialize store on mount
-    useGymStore.getState().init();
+    const initStore = async () => {
+      try {
+        await useGymStore.getState().init();
+        setLocalReady(true);
+        setLocalError(null);
+      } catch (e: any) {
+        setLocalError(e.message ?? String(e));
+        setLocalReady(false);
+      }
+    };
+    initStore();
   }, []);
 
-  if (!ready) {
-    if (error) {
+  if (!localReady) {
+    if (localError) {
       return (
         <div className="app">
           <h2>Ошибка инициализации</h2>
-          <p>{error}</p>
+          <p>{localError}</p>
         </div>
       );
     }
@@ -54,13 +64,11 @@ export const App: React.FC = () => {
       </nav>
 
       <main className="app-content">
-        <ErrorBoundary fallback={<div><h2>Что-то пошло не так</h2><p>Смотрите консоль для деталей.</p></div>}>
-          {activeTab === 'plan' && <section>План тренировок</section>}
-          {activeTab === 'session' && <SessionView />}
-          {activeTab === 'history' && <section>График прогресса</section>}
-          {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
-          {activeTab === 'more' && <section>Настройки и другое</section>}
-        </ErrorBoundary>
+        {activeTab === 'plan' && <section>План тренировок</section>}
+        {activeTab === 'session' && <SessionView />}
+        {activeTab === 'history' && <section>График прогресса</section>}
+        {activeTab === 'nutrition' && <section>Еда и норма калорий</section>}
+        {activeTab === 'more' && <section>Настройки и другое</section>}
       </main>
     </div>
   );
