@@ -8,6 +8,7 @@ interface GymState {
   init: () => Promise<void>;
   getProgramDay: (dayId: 'mon' | 'wed' | 'fri') => Promise<ProgramDay | undefined>;
   getExercise: (id: string) => Promise<Exercise | undefined>;
+  getAllExercises: () => Promise<Exercise[]>;
   addSession: (session: Omit<Session, 'id'>) => Promise<string>;
   getSetsBySession: (sessionId: string) => Promise<SetEntry[]>;
   addSet: (set: Omit<SetEntry, 'id'>) => Promise<string>;
@@ -49,6 +50,11 @@ export const useGymStore = create<GymState>((set, get) => ({
   getExercise: async (id) => {
     await get().init();
     return db.exercises.get(id);
+  },
+
+  getAllExercises: async () => {
+    await get().init();
+    return db.exercises.toArray();
   },
 
   addSession: async (session) => {
