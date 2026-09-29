@@ -103,7 +103,8 @@ export const SessionView: React.FC = () => {
       finishedAt: null,
       note: '',
     });
-    alert(`Сессия создана: ${id}`);
+    // TODO: navigate to active session screen
+    // alert removed
   }
 };
 
