@@ -6,6 +6,8 @@ export const SessionView: React.FC = () => {
   const [program, setProgram] = useState<any>(null);
   const [exerciseMap, setExerciseMap] = useState<Record<string, string>>({});
   const [today, setToday] = useState<string>('');
+  const [activeSession, setActiveSession] = useState<any>(null);
+  const [sets, setSets] = useState<any[]>([]);
 
   // Determine nearest training day: mon/wed/fri, default to mon, but if today is tue/thu/sat/sun show next
   useEffect(() => {
@@ -38,10 +40,70 @@ export const SessionView: React.FC = () => {
     }
   }, [dayId]);
 
+  useEffect(() => {
+    (async () => {
+      const active = await useGymStore.getState().getActiveSessionToday();
+      setActiveSession(active);
+      if (active) {
+        const allSets = await useGymStore.getState().getSetsBySession(active.id);
+        setSets(allSets);
+      }
+    });
+  }, []);
+
   if (!program) {
     return <div className="session-view">Загрузка программы...</div>;
   }
 
+  // If there is an active session, show active view
+  if (activeSession) {
+    return (
+      <section className="session-view">
+        <div className="dayhead">
+          <div>
+            <h2>Тренировка в процессе</h2>
+            <p className="lead">{new Date(activeSession.date).toLocaleDateString()}</p>
+          </div>
+          <button className="pri" onClick={() => useGymStore.getState().finishSession(activeSession.id, 'Завершено досрочно')}>
+            Завершить тренировку
+          </button>
+        </div>
+        <ol className="ex">
+          {sets.map((set: any, idx: number) => {
+            const exName = exerciseMap[set.exerciseId] ?? set.exerciseId;
+            return (
+              <li key={idx} className={set.supersetWith ? 'ss' : ''}>
+                <div className="row1">
+                  <span className="num">{set.index + 1}</span>
+                  <h3>{exName}</h3>
+                </div>
+                <div className="meta">
+                  <span className="sets">{set.sets}×{set.repsLow}–{set.repsHigh}</span>
+                  <span className="rest">отдых {set.restSec}с</span>
+                </div>
+                {set.t && <p className="tip">{set.t}</p>}
+                <div className="wt">
+                  <div>
+                    Вес: <input type="number" step="0.5" min="0" placeholder="кг" />
+                  </div>
+                  <div>
+                    Повторы: <input type="number" step="1" min="0" placeholder="повт" />
+                  </div>
+                  <button className="pri" onClick={() => {
+                    // TODO: implement set completion
+                  }}>
+                    Завершить подход
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    );
+  }
+
+  // No active session -> show normal view for planning/starting
   return (
     <section className="session-view">
       <div className="dayhead">
@@ -114,7 +176,7 @@ export const SessionView: React.FC = () => {
       finishedAt: null,
       note: '',
     });
-    // TODO: navigate to active session screen
+    // TODO: navigate to active session screen (will reload via useEffect)
   }
 };
 
