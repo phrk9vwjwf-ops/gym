@@ -20,6 +20,8 @@ interface GymState {
   // Sets
   getSetsBySession: (sessionId: string) => Promise<SetEntry[]>;
   addSet: (set: Omit<SetEntry, 'id'>) => Promise<string>;
+  // Max weight and reps of the exercise in its latest finished session ("рабочий вес")
+  getLastWorkingSet: (exerciseId: string) => Promise<{ weight: number | null; reps: number } | null>;
   // Body weight
   // Latest entry on or before the date
   getBodyWeight: (date: string) => Promise<BodyWeight | undefined>;
@@ -119,6 +121,20 @@ export const useGymStore = create<GymState>((set, get) => ({
     const id = crypto.randomUUID();
     await db.sets.put({ ...set, id });
     return id;
+  },
+
+  getLastWorkingSet: async (exerciseId) => {
+    await get().init();
+    const sets = await db.sets.where('exerciseId').equals(exerciseId).toArray();
+    if (sets.length === 0) return null;
+    const sessions = await db.sessions.bulkGet([...new Set(sets.map(s => s.sessionId))]);
+    const last = sessions
+      .filter((s): s is Session => !!s && s.finishedAt !== null)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.startedAt - a.startedAt)[0];
+    if (!last) return null;
+    const own = sets.filter(s => s.sessionId === last.id);
+    const top = own.reduce((best, s) => ((s.weight ?? 0) > (best.weight ?? 0) ? s : best), own[0]);
+    return { weight: top.weight, reps: top.reps };
   },
 
   // Body weight

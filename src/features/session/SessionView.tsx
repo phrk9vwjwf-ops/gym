@@ -1,6 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGymStore } from '@/lib/store';
 import { localDate, parseLocalDate } from '@/lib/date';
+import type { ProgramDay, ProgramItem, Session, SetEntry } from '@/db';
+
+type DayId = ProgramDay['id'];
+type Draft = { weight: string; reps: string };
+type Summary = { tonnage: number; minutes: number; sets: number };
 
 // "3×6–8", "3×15" when the range is a single number, "3 подх." when reps are open (to failure)
 const formatSets = (sets: number | null, repsLow: number | null, repsHigh: number | null) => {
@@ -10,113 +15,198 @@ const formatSets = (sets: number | null, repsLow: number | null, repsHigh: numbe
   return `${sets}×${repsLow}–${repsHigh}`;
 };
 
+const draftKey = (exerciseId: string, index: number) => `${exerciseId}:${index}`;
+
+// Training day for today: Mon/Wed/Fri as is, other days show the next one
+const dayForToday = (): DayId => {
+  const day = new Date().getDay(); // 0 Sun … 6 Sat
+  if (day === 3) return 'wed';
+  if (day === 5) return 'fri';
+  return 'mon';
+};
+
+const RING = 2 * Math.PI * 40;
+
 export const SessionView: React.FC = () => {
-  const [dayId, setDayId] = useState<'mon' | 'wed' | 'fri'>('mon');
-  const [program, setProgram] = useState<any>(null);
+  const [dayId, setDayId] = useState<DayId>(dayForToday);
+  const [program, setProgram] = useState<ProgramDay | null>(null);
   const [exerciseMap, setExerciseMap] = useState<Record<string, string>>({});
-  const [today, setToday] = useState<string>('');
-  const [activeSession, setActiveSession] = useState<any>(null);
-  const [sets, setSets] = useState<any[]>([]);
-  // Rest timer state
-  const [restTimeLeft, setRestTimeLeft] = useState<number>(0);
-  const [isResting, setIsResting] = useState<boolean>(false);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [sets, setSets] = useState<SetEntry[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [summary, setSummary] = useState<Summary | null>(null);
+  // Rest timer counts down to a timestamp, so it stays correct after the phone sleeps
+  const [rest, setRest] = useState<{ endAt: number; total: number } | null>(null);
+  const [now, setNow] = useState(Date.now());
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [lastCompletedSetIndex, setLastCompletedSetIndex] = useState<number>(-1);
-
-  // Determine nearest training day: mon/wed/fri, default to mon, but if today is tue/thu/sat/sun show next
-  useEffect(() => {
-    const todayStr = localDate();
-    setToday(todayStr);
-    const day = new Date().getDay(); // 0 Sun,1 Mon,2 Tue,3 Wed,4 Thu,5 Fri,6 Sat
-    let id: 'mon' | 'wed' | 'fri' = 'mon';
-    if (day === 0 || day === 2 || day === 4 || day === 6) {
-      // Sun/Tue/Thu/Sat -> next is Mon
-      id = 'mon';
-    } else if (day === 1) id = 'mon';
-    else if (day === 3) id = 'wed';
-    else if (day === 5) id = 'fri';
-    setDayId(id);
-  }, []);
 
   useEffect(() => {
-    if (dayId) {
-      (async () => {
-        const prog = await useGymStore.getState().getProgramDay(dayId);
-        setProgram(prog);
-        // Load all exercises to map id -> name
-        const allEx = await useGymStore.getState().getAllExercises();
-        const map: Record<string, string> = {};
-        allEx.forEach((ex: any) => {
-          map[ex.id] = ex.name;
-        });
-        setExerciseMap(map);
-      })();
-    }
+    (async () => {
+      const prog = await useGymStore.getState().getProgramDay(dayId);
+      setProgram(prog ?? null);
+      const allEx = await useGymStore.getState().getAllExercises();
+      const map: Record<string, string> = {};
+      allEx.forEach(ex => {
+        map[ex.id] = ex.name;
+      });
+      setExerciseMap(map);
+    })();
   }, [dayId]);
 
   useEffect(() => {
     (async () => {
       const active = await useGymStore.getState().getActiveSessionToday();
+      if (!active) return;
+      // The session's own day, not today's default
+      setDayId(active.dayId);
       setActiveSession(active);
-      if (active) {
-        const allSets = await useGymStore.getState().getSetsBySession(active.id);
-        setSets(allSets);
-      }
-    });
+      setSets(await useGymStore.getState().getSetsBySession(active.id));
+    })();
   }, []);
 
-  // Clean up interval on unmount
+  // Prefill weight and reps from the last finished session with each exercise
   useEffect(() => {
-    return () => {
-      if (restIntervalRef.current) {
-        clearInterval(restIntervalRef.current);
-        restIntervalRef.current = null;
-      }
-    };
-  }, []);
-
-  const startRestTimer = (restSec: number) => {
-    setRestTimeLeft(restSec);
-    setIsResting(true);
-    if (restIntervalRef.current) {
-      clearInterval(restIntervalRef.current);
-    }
-    restIntervalRef.current = setInterval(() => {
-      setRestTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(restIntervalRef.current!);
-          restIntervalRef.current = null;
-          setIsResting(false);
-          // Vibrate if supported
-          if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]); // short pattern
-          }
-          return 0;
+    if (!activeSession || !program || activeSession.dayId !== program.id) return;
+    (async () => {
+      const next: Record<string, Draft> = {};
+      for (const item of program.items) {
+        const last = await useGymStore.getState().getLastWorkingSet(item.exerciseId);
+        const weight = last?.weight ?? item.startWeight;
+        const reps = last?.reps ?? item.repsLow;
+        for (let i = 0; i < (item.sets ?? 1); i++) {
+          next[draftKey(item.exerciseId, i)] = { weight: weight != null ? String(weight) : '', reps: reps != null ? String(reps) : '' };
         }
-        return t - 1;
-      });
-    }, 1000);
-  };
+      }
+      // Keep anything the user already typed
+      setDrafts(prev => ({ ...next, ...prev }));
+    })();
+  }, [activeSession, program]);
 
-  const skipRest = () => {
+  const stopRest = () => {
     if (restIntervalRef.current) {
       clearInterval(restIntervalRef.current);
       restIntervalRef.current = null;
     }
-    setIsResting(false);
-    setRestTimeLeft(0);
+    setRest(null);
+  };
+
+  useEffect(() => {
+    if (!rest) return;
+    restIntervalRef.current = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t >= rest.endAt) {
+        stopRest();
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+      }
+    }, 250);
+    return () => {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    };
+  }, [rest]);
+
+  const startRest = (restSec: number) => {
+    const t = Date.now();
+    setNow(t);
+    setRest({ endAt: t + restSec * 1000, total: restSec });
+  };
+
+  const updateDraft = (key: string, field: keyof Draft, value: string) => {
+    setDrafts(prev => ({ ...prev, [key]: { ...(prev[key] ?? { weight: '', reps: '' }), [field]: value } }));
+  };
+
+  const completeSet = async (item: ProgramItem, index: number) => {
+    if (!activeSession) return;
+    const key = draftKey(item.exerciseId, index);
+    const draft = drafts[key] ?? { weight: '', reps: '' };
+    const reps = parseInt(draft.reps, 10);
+    if (!(reps > 0)) {
+      document.getElementById(`reps-${key}`)?.focus();
+      return;
+    }
+    const weight = draft.weight.trim() === '' ? null : parseFloat(draft.weight.replace(',', '.'));
+    const entry: Omit<SetEntry, 'id'> = {
+      sessionId: activeSession.id,
+      exerciseId: item.exerciseId,
+      index,
+      weight: weight !== null && Number.isFinite(weight) ? weight : null,
+      reps,
+      done: true,
+      at: Date.now(),
+    };
+    const id = await useGymStore.getState().addSet(entry);
+    setSets(prev => [...prev, { ...entry, id }]);
+    if (item.restSec && item.restSec > 0) startRest(item.restSec);
+  };
+
+  const handleStart = async () => {
+    const id = await useGymStore.getState().addSession({
+      date: localDate(),
+      dayId,
+      startedAt: Date.now(),
+      finishedAt: null,
+      note: '',
+    });
+    const session = await useGymStore.getState().getSessionById(id);
+    setSummary(null);
+    setSets([]);
+    setDrafts({});
+    setActiveSession(session ?? null);
+  };
+
+  const handleFinish = async () => {
+    if (!activeSession) return;
+    stopRest();
+    await useGymStore.getState().finishSession(activeSession.id, '');
+    const done = await useGymStore.getState().getSetsBySession(activeSession.id);
+    setSummary({
+      tonnage: done.reduce((sum, s) => sum + (s.weight ?? 0) * s.reps, 0),
+      minutes: Math.max(1, Math.round((Date.now() - activeSession.startedAt) / 60000)),
+      sets: done.length,
+    });
+    setActiveSession(null);
+    setSets([]);
+    setDrafts({});
   };
 
   if (!program) {
     return <div className="session-view">Загрузка программы...</div>;
   }
 
-  // If there is an active session, show active view
-  if (activeSession) {
+  if (summary) {
     return (
       <section className="session-view">
-        {/* Rest timer overlay */}
-        {isResting && (
+        <div className="summary-card" role="status">
+          <h2>Тренировка завершена</h2>
+          <div className="summary-grid">
+            <div className="result-item">
+              <span>Тоннаж</span>
+              <strong>{summary.tonnage.toLocaleString('ru-RU')} кг</strong>
+            </div>
+            <div className="result-item">
+              <span>Время</span>
+              <strong>{summary.minutes} мин</strong>
+            </div>
+            <div className="result-item">
+              <span>Подходов</span>
+              <strong>{summary.sets}</strong>
+            </div>
+          </div>
+          <button className="pri" onClick={() => setSummary(null)}>
+            Готово
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  // If there is an active session, show active view
+  if (activeSession) {
+    const restLeft = rest ? Math.max(0, Math.ceil((rest.endAt - now) / 1000)) : 0;
+    const restProgress = rest ? Math.min(1, Math.max(0, (rest.endAt - now) / (rest.total * 1000))) : 0;
+    return (
+      <section className="session-view">
+        {rest && (
           <div className="rest-timer-overlay">
             <div className="rest-timer-circle">
               <svg width="100" height="100" viewBox="0 0 100 100">
@@ -128,78 +218,89 @@ export const SessionView: React.FC = () => {
                   fill="none"
                   stroke="#5AA9F5"
                   strokeWidth="8"
-                  strokeDasharray={251.2}
-                  strokeDashoffset={251.2 * (1 - restTimeLeft / (program.items.find((i: any) => i.exerciseId === sets[lastCompletedSetIndex]?.exerciseId)?.restSec || 15))}
+                  strokeDasharray={RING}
+                  strokeDashoffset={RING * (1 - restProgress)}
                   transform="rotate(-90 50 50)"
                 />
               </svg>
-              <div className="rest-timer-text">{restTimeLeft}с</div>
+              <div className="rest-timer-text">{restLeft}с</div>
             </div>
-            <button className="rest-timer-skip" onClick={skipRest}>
+            <button className="rest-timer-skip" onClick={stopRest}>
               Пропустить
             </button>
           </div>
         )}
         <div className="dayhead">
           <div>
-            <h2>Тренировка в процессе</h2>
-            <p className="lead">{parseLocalDate(activeSession.date).toLocaleDateString('ru-RU')}</p>
+            <h2>{program.title}</h2>
+            <p className="lead">Тренировка идёт · {parseLocalDate(activeSession.date).toLocaleDateString('ru-RU')}</p>
           </div>
-          <button className="pri" onClick={() => useGymStore.getState().finishSession(activeSession.id, 'Завершено досрочно')}>
-            Завершить тренировку
-          </button>
         </div>
         <ol className="ex">
-          {sets.map((set: any, idx: number) => {
-            const exName = exerciseMap[set.exerciseId] ?? set.exerciseId;
+          {program.items.map((item, idx) => {
+            const exName = exerciseMap[item.exerciseId] ?? item.exerciseId;
+            const rows = Array.from({ length: item.sets ?? 1 }, (_, i) => i);
             return (
-              <li key={idx} className={set.supersetWith ? 'ss' : ''}>
+              <li key={idx} className={item.supersetWith ? 'ss' : ''}>
                 <div className="row1">
-                  <span className="num">{set.index + 1}</span>
+                  <span className="num">{idx + 1}</span>
                   <h3>{exName}</h3>
                 </div>
                 <div className="meta">
-                  {formatSets(set.sets, set.repsLow, set.repsHigh) && <span className="sets">{formatSets(set.sets, set.repsLow, set.repsHigh)}</span>}
-                  {set.restSec ? <span className="rest">отдых {set.restSec}с</span> : null}
+                  {formatSets(item.sets, item.repsLow, item.repsHigh) && <span className="sets">{formatSets(item.sets, item.repsLow, item.repsHigh)}</span>}
+                  {item.restSec ? <span className="rest">отдых {item.restSec}с</span> : null}
                 </div>
-                {set.t && <p className="tip">{set.t}</p>}
-                <div className="wt">
-                  <div>
-                    Вес: <input type="number" step="0.5" min="0" placeholder="кг" value={set.weight ?? ''} onChange={(e) => {
-                      const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                      // update set weight optimistically? We'll just store locally and push to db on completion
-                    }} />
-                  </div>
-                  <div>
-                    Повторы: <input type="number" step="1" min="0" placeholder="повт" value={set.reps ?? ''} onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
-                    }} />
-                  </div>
-                  <button className="pri" onClick={() => {
-                    // Complete set: save to DB, start rest timer
-                    const updatedSet = {
-                      ...set,
-                      weight: set.weight ?? null, // keep as is
-                      reps: set.reps ?? 0,
-                      done: true,
-                      at: Date.now()
-                    };
-                    useGymStore.getState().addSet(updatedSet).then(() => {
-                      setSets((prev) => prev.map((s, i) => (i === idx ? updatedSet : s)));
-                      setLastCompletedSetIndex(idx);
-                      // Find restSec from program item
-                      const item = program.items.find((i: any) => i.exerciseId === set.exerciseId);
-                      const restSec = item ? item.restSec ?? 0 : 15;
-                      if (restSec > 0) startRestTimer(restSec);
-                    });
-                  }}>
-                    Завершить подход
-                  </button>
+                <div className="set-rows">
+                  {rows.map(i => {
+                    const key = draftKey(item.exerciseId, i);
+                    const done = sets.find(s => s.exerciseId === item.exerciseId && s.index === i);
+                    const draft = drafts[key] ?? { weight: '', reps: '' };
+                    return (
+                      <div key={key} className={`set-row${done ? ' done' : ''}`}>
+                        <button
+                          className="set-dot"
+                          aria-label={done ? `Подход ${i + 1} записан` : `Записать подход ${i + 1}`}
+                          disabled={!!done}
+                          onClick={() => completeSet(item, i)}
+                        >
+                          {done ? '✓' : i + 1}
+                        </button>
+                        <label className="set-field">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={`Вес, подход ${i + 1}`}
+                            placeholder="—"
+                            value={done ? (done.weight ?? '') : draft.weight}
+                            disabled={!!done}
+                            onChange={(e) => updateDraft(key, 'weight', e.target.value)}
+                          />
+                          <span>кг</span>
+                        </label>
+                        <label className="set-field">
+                          <input
+                            id={`reps-${key}`}
+                            type="text"
+                            inputMode="numeric"
+                            aria-label={`Повторы, подход ${i + 1}`}
+                            placeholder="—"
+                            value={done ? done.reps : draft.reps}
+                            disabled={!!done}
+                            onChange={(e) => updateDraft(key, 'reps', e.target.value)}
+                          />
+                          <span>повт</span>
+                        </label>
+                      </div>
+                    );
+                  })}
                 </div>
               </li>
             );
           })}
         </ol>
+        <button className="pri finish-btn" onClick={handleFinish}>
+          Завершить тренировку
+        </button>
       </section>
     );
   }
@@ -268,17 +369,6 @@ export const SessionView: React.FC = () => {
       </p>
     </section>
   );
-
-  async function handleStart() {
-    const id = await useGymStore.getState().addSession({
-      date: today,
-      dayId,
-      startedAt: Date.now(),
-      finishedAt: null,
-      note: '',
-    });
-    // TODO: navigate to active session screen (will reload via useEffect)
-  }
 };
 
 export default SessionView;

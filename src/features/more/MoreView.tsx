@@ -16,6 +16,7 @@ export const MoreView: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [backupStatus, setBackupStatus] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
+  const [settingsStatus, setSettingsStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -126,14 +127,15 @@ export const MoreView: React.FC = () => {
           const a = Number(age);
           const { heightCm: hl, age: al } = PROFILE_LIMITS;
           if (!Number.isInteger(h) || h < hl.min || h > hl.max || !Number.isInteger(a) || a < al.min || a > al.max) {
-            setBackupStatus({ kind: 'error', text: `Рост — целое число ${hl.min}–${hl.max} см, возраст — ${al.min}–${al.max} лет. Настройки не сохранены` });
+            setSettingsStatus({ kind: 'error', text: `Рост — целое число ${hl.min}–${hl.max} см, возраст — ${al.min}–${al.max} лет. Настройки не сохранены` });
             return;
           }
           await updateSettings({ theme, units, weightTarget, heightCm: h, age: a });
-          setBackupStatus({ kind: 'ok', text: 'Настройки сохранены' });
+          setSettingsStatus({ kind: 'ok', text: 'Настройки сохранены' });
         }}>
           Сохранить настройки
         </button>
+        {settingsStatus && <p className={`backup-status ${settingsStatus.kind}`} role="status">{settingsStatus.text}</p>}
       </div>
 
       <div className="backup-section">
