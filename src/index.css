@@ -17,6 +17,19 @@
   --done-soft: rgba(76, 195, 138, 0.16);
   --done-ink: #4CC38A;
   --danger: #FF7B72;
+  /* Muscle groups: text-safe (4.5:1) on cards and on their own tint */
+  --m-chest: #FF8F7A;
+  --m-back: #6EB0FF;
+  --m-shoulders: #F5B94A;
+  --m-biceps: #B79CFF;
+  --m-triceps: #3FD0C9;
+  --m-legs: #8FD460;
+  --m-core: #FF8FC8;
+  --warn: #F5B94A;
+  --card-grad: linear-gradient(165deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035) 60%);
+  --glow: 0 8px 28px -10px;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --font-num: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 
   --blur: blur(24px) saturate(180%);
@@ -30,6 +43,7 @@
   --tap: 44px;
   --tabbar-h: 56px;
   --header-h: 58px;
+  --content-max: 760px;
 
   color-scheme: dark;
 }
@@ -52,6 +66,16 @@
     --done-soft: rgba(46, 158, 107, 0.14);
     --done-ink: #237A52;
     --danger: #C2362F;
+    --m-chest: #A8341F;
+    --m-back: #1D5FB0;
+    --m-shoulders: #865600;
+    --m-biceps: #6544C2;
+    --m-triceps: #086863;
+    --m-legs: #346811;
+    --m-core: #AA2D6A;
+    --warn: #865600;
+    --scrim: rgba(237, 240, 243, 0.8);
+    --card-grad: linear-gradient(165deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6) 60%);
     --shadow: 0 1px 2px rgba(16, 23, 32, 0.08);
     color-scheme: light;
   }
@@ -74,6 +98,16 @@
   --done-soft: rgba(46, 158, 107, 0.14);
   --done-ink: #237A52;
   --danger: #C2362F;
+  --m-chest: #A8341F;
+  --m-back: #1D5FB0;
+  --m-shoulders: #865600;
+  --m-biceps: #6544C2;
+  --m-triceps: #086863;
+  --m-legs: #346811;
+  --m-core: #AA2D6A;
+  --warn: #865600;
+  --scrim: rgba(237, 240, 243, 0.8);
+  --card-grad: linear-gradient(165deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6) 60%);
   --shadow: 0 1px 2px rgba(16, 23, 32, 0.08);
   color-scheme: light;
 }
@@ -132,6 +166,8 @@ button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }

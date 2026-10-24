@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
 import { applyTheme } from '@/lib/theme';
 import SessionView from '@/features/session/SessionView';
+import PlanView from '@/features/plan/PlanView';
 import ChartsView from '@/features/charts/ChartsView';
 import MoreView from '@/features/more/MoreView';
 import NutritionView from '@/features/nutrition/NutritionView';
@@ -70,7 +71,7 @@ export const App: React.FC = () => {
       </nav>
 
       <main className="app-content">
-        {activeTab === 'plan' && <section>План тренировок</section>}
+        {activeTab === 'plan' && <PlanView />}
         {activeTab === 'session' && <SessionView />}
         {activeTab === 'history' && <ChartsView />}
         {activeTab === 'nutrition' && <NutritionView />}

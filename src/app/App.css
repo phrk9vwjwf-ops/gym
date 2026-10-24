@@ -14,7 +14,8 @@
   justify-content: space-between;
   gap: 12px;
   height: calc(var(--header-h) + env(safe-area-inset-top));
-  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  /* Full-width glass, content aligned with the centered column */
+  padding: calc(10px + env(safe-area-inset-top)) max(16px, calc((100% - var(--content-max)) / 2 + 16px)) 10px;
   background: var(--glass);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
@@ -32,7 +33,7 @@
 
 .app-content {
   padding: 16px 16px calc(var(--tabbar-h) + 24px + env(safe-area-inset-bottom));
-  max-width: 640px;
+  max-width: var(--content-max);
   margin: 0 auto;
 }
 
@@ -42,6 +43,8 @@
   left: 0;
   right: 0;
   bottom: 0;
+  max-width: var(--content-max);
+  margin: 0 auto;
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -80,6 +83,15 @@
 }
 .app-tabs button.active::before {
   transform: scaleX(1);
+}
+
+/* Wider than the column: the tab bar floats as a centered panel */
+@media (min-width: 761px) {
+  .app-tabs {
+    border: 0.5px solid var(--card-border);
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+  }
 }
 
 /* ---------- Buttons ---------- */
@@ -167,6 +179,32 @@
   font-size: 15px;
 }
 
+.workout-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.workout-bar {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--fill);
+}
+.workout-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-ink), var(--done-ink));
+  transform-origin: left;
+  transition: transform var(--dur-slow) var(--ease);
+}
+.workout-count {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
 .warm {
   padding: 12px 14px;
   border-radius: var(--radius-s);
@@ -189,13 +227,32 @@
 .ex li {
   padding: 14px 16px 16px;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--card-grad);
   border: 0.5px solid var(--card-border);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
 }
+.ex li {
+  --m: var(--accent-ink);
+  /* Tint levels keep the muscle colour at 4.5:1 as text on top of them */
+  --m-soft: color-mix(in srgb, var(--m) 13%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--m) 8%, transparent), transparent 42%), var(--card-grad);
+  transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.ex li.m-chest { --m: var(--m-chest); }
+.ex li.m-back { --m: var(--m-back); }
+.ex li.m-shoulders { --m: var(--m-shoulders); }
+.ex li.m-biceps { --m: var(--m-biceps); }
+.ex li.m-triceps { --m: var(--m-triceps); }
+.ex li.m-legs { --m: var(--m-legs); }
+.ex li.m-core { --m: var(--m-core); }
 .ex li.ss {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--m);
+}
+/* The exercise being worked on now */
+.ex li.current {
+  border-color: color-mix(in srgb, var(--m) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m) 55%, transparent), var(--glow) color-mix(in srgb, var(--m) 60%, transparent);
 }
 
 .row1 {
@@ -216,6 +273,30 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+.ex li .num {
+  background: var(--m-soft);
+  color: var(--m);
+}
+.row1 h3 {
+  flex: 1;
+  min-width: 0;
+}
+/* «3 из 4» */
+.ex-count {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.ex li.complete .ex-count {
+  background: var(--done-ink);
+  color: var(--on-accent);
+}
 
 .meta {
   display: flex;
@@ -226,6 +307,7 @@
 }
 /* Big set × reps numbers */
 .sets {
+  font-family: var(--font-num);
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -318,25 +400,82 @@
   gap: 10px;
 }
 .set-dot {
+  --m: var(--accent-ink);
+  position: relative;
+  display: grid;
+  place-items: center;
   width: var(--tap);
   height: var(--tap);
-  border: 2px solid var(--accent-ink);
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: none;
-  color: var(--accent-ink);
-  font-size: 17px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  color: inherit;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.ex li .set-dot {
+  --m: inherit;
+  color: var(--m);
 }
 .set-dot:active {
   transform: scale(0.9);
 }
+.dot-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.dot-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+.dot-track {
+  stroke: color-mix(in srgb, var(--m) 35%, transparent);
+}
+.set-row.current .dot-track {
+  stroke: var(--m);
+}
+.dot-fill {
+  stroke: var(--done-ink);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  /* a round cap would show as a dot before the sweep */
+  opacity: 0;
+}
+.set-row.done .dot-fill {
+  opacity: 1;
+}
+.dot-num {
+  font-family: var(--font-num);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+/* Recorded: ring sweeps closed, the dot fills green, the check draws and springs */
 .set-row.done .set-dot {
-  border-color: var(--done);
-  background: var(--done);
   color: var(--on-accent);
-  animation: set-pop var(--dur-slow) var(--ease);
+  animation: dot-fill-bg var(--dur-fast) var(--ease) 120ms both, set-pop var(--dur-slow) var(--ease);
+}
+.set-row.done .dot-fill {
+  stroke-dashoffset: 0;
+  animation: ring-sweep var(--dur-fast) var(--ease) both;
+}
+.dot-check {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+.dot-check path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  animation: check-draw var(--dur-fast) var(--ease) 120ms both;
 }
 .set-field {
   display: flex;
@@ -358,12 +497,13 @@
 .stepper {
   display: grid;
   grid-template-columns: var(--tap) 1fr var(--tap);
+  min-height: 52px;
   align-items: center;
   border-radius: var(--radius-s);
   background: var(--fill);
 }
 .step-btn {
-  height: var(--tap);
+  height: 52px;
   border: 0;
   border-radius: var(--radius-s);
   background: none;
@@ -371,6 +511,9 @@
   font-size: 22px;
   font-weight: 500;
   transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.ex li .step-btn {
+  color: var(--m);
 }
 .step-btn:active {
   transform: scale(0.9);
@@ -392,8 +535,10 @@
   border: 0;
   background: none;
   text-align: right;
-  font-size: 20px;
-  font-weight: 700;
+  font-family: var(--font-num);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 .stepper-field input[type="text"]:focus {
   background: none;
@@ -402,7 +547,9 @@
   width: 100%;
   min-width: 0;
   text-align: center;
-  font-weight: 600;
+  font-family: var(--font-num);
+  font-size: 22px;
+  font-weight: 700;
 }
 .set-row.done input:disabled {
   opacity: 1;
@@ -421,7 +568,7 @@
   gap: 16px;
   padding: 20px 16px;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--card-grad);
   border: 0.5px solid var(--card-border);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
@@ -474,7 +621,7 @@ select:focus-visible {
 .chart-container {
   padding: 16px;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--card-grad);
   border: 0.5px solid var(--card-border);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
@@ -562,6 +709,284 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Plan ---------- */
+.plan-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.plan-view .dayhead h2 {
+  font-size: 28px;
+  font-weight: 800;
+}
+.plan-card,
+.rule {
+  border-radius: var(--radius);
+  background: var(--card-grad);
+  border: 0.5px solid var(--card-border);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+.plan-card {
+  padding: 16px 12px 12px;
+}
+.plan-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px 10px;
+}
+.plan-total {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.weeks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.week {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px;
+  border-radius: 12px;
+}
+.week.current {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.week-num {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--fill);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.week.current .week-num {
+  background: var(--accent-ink);
+  color: var(--on-accent);
+}
+.week-mode {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.week.intro .week-mode { color: var(--accent-ink); }
+.week.deload .week-mode { color: var(--text-2); }
+.week-date {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.week-note {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+.week-days {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.day-dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--fill);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.day-dot.done {
+  background: var(--done-ink);
+  color: var(--on-accent);
+}
+.week-count {
+  min-width: 28px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.plan-after {
+  margin: 10px 4px 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rules h3 {
+  margin: 4px 4px 0;
+}
+.rule summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.rule summary::-webkit-details-marker {
+  display: none;
+}
+.rule summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-2);
+  border-bottom: 2px solid var(--text-2);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.rule[open] summary::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+.rule p {
+  margin: 0 16px 12px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text-2);
+  animation: fade-in var(--dur-fast) var(--ease) both;
+}
+
+/* Program editor */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.editor-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 4px 4px 0;
+}
+.editor-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+.editor-status.ok { color: var(--done-ink); }
+.editor-status.error { color: var(--danger); }
+.editor .lead {
+  margin: 0 4px;
+}
+.edit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.edit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--card-grad);
+  border: 0.5px solid var(--card-border);
+}
+.edit-top {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.edit-select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.edit-field span {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edit-field input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0 4px;
+  text-align: center;
+  font-weight: 600;
+}
+.edit-field.invalid input[type="text"] {
+  border-color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+.edit-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+.edit-btn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--fill);
+  font-size: 17px;
+  font-weight: 600;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.edit-btn:active { transform: scale(0.94); }
+.edit-btn:disabled { opacity: 0.35; }
+.edit-btn.danger {
+  margin-left: auto;
+  color: var(--danger);
+  font-size: 15px;
+}
+.edit-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
 /* ---------- Charts ---------- */
 .charts-view {
   display: flex;
@@ -613,7 +1038,7 @@ select:focus-visible {
   justify-content: flex-end;
   gap: 20px;
   padding: 24px 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   animation: fade-in var(--dur) var(--ease) both;
@@ -637,6 +1062,7 @@ select:focus-visible {
 }
 .rest-timer-text {
   position: absolute;
+  font-family: var(--font-num);
   font-size: 48px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -714,6 +1140,20 @@ select:focus-visible {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+.rest-timer-overlay.ending .rest-timer-circle circle:last-child {
+  stroke: var(--warn);
+}
+.rest-timer-overlay.ending .rest-timer-text,
+.rest-bar.ending .rest-bar-main b {
+  color: var(--warn);
+  animation: tick-pulse var(--dur-slow) var(--ease);
+}
+.rest-bar-main b {
+  display: inline-block;
+}
+.rest-bar.ending .rest-bar-fill {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+}
 .rest-bar-skip {
   padding: 0 14px;
   font-weight: 600;
@@ -721,6 +1161,23 @@ select:focus-visible {
 }
 
 /* ---------- Motion ---------- */
+@keyframes ring-sweep {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes check-draw {
+  from { stroke-dashoffset: 100; transform: scale(0.6); }
+  to { stroke-dashoffset: 0; transform: scale(1); }
+}
+@keyframes dot-fill-bg {
+  from { background: transparent; }
+  to { background: var(--done-ink); }
+}
+@keyframes tick-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
 @keyframes set-pop {
   0% { transform: scale(0.8); }
   60% { transform: scale(1.12); }

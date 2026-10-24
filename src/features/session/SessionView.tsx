@@ -59,6 +59,23 @@ const Stepper: React.FC<{
   </div>
 );
 
+// Ring sweeps around and the check springs in once the set is recorded
+const SetDot: React.FC<{ n: number; done: boolean; label: string; onClick: () => void }> = ({ n, done, label, onClick }) => (
+  <button className="set-dot" aria-label={label} disabled={done} onClick={onClick}>
+    <svg className="dot-ring" viewBox="0 0 44 44" aria-hidden="true">
+      <circle className="dot-track" cx="22" cy="22" r="20" />
+      <circle className="dot-fill" cx="22" cy="22" r="20" pathLength={100} />
+    </svg>
+    {done ? (
+      <svg className="dot-check" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5.5 12.5l4.2 4.2L18.5 8" pathLength={100} />
+      </svg>
+    ) : (
+      <span className="dot-num">{n}</span>
+    )}
+  </button>
+);
+
 const HowTo: React.FC<{ cue?: string }> = ({ cue }) =>
   cue ? (
     <details className="howto">
@@ -246,13 +263,20 @@ export const SessionView: React.FC = () => {
   if (activeSession) {
     const restLeft = rest ? Math.max(0, Math.ceil((rest.endAt - now) / 1000)) : 0;
     const restProgress = rest ? Math.min(1, Math.max(0, (rest.endAt - now) / (rest.total * 1000))) : 0;
+    // Last ten seconds: re-keyed every second so a short pulse replays on each tick
+    const ending = !!rest && restLeft <= 10;
+    const pulseKey = ending ? restLeft : 'steady';
+    const doneOf = (item: ProgramItem) => sets.filter(s => s.exerciseId === item.exerciseId && s.index < (item.sets ?? 1)).length;
+    const totalSets = program.items.reduce((sum, item) => sum + (item.sets ?? 1), 0);
+    const doneSets = program.items.reduce((sum, item) => sum + doneOf(item), 0);
+    const currentIdx = program.items.findIndex(item => doneOf(item) < (item.sets ?? 1));
     return (
       <section className="session-view">
         {rest && restCollapsed && (
-          <div className="rest-bar" role="timer" aria-label={`Отдых, осталось ${formatRest(restLeft)}`}>
+          <div className={`rest-bar${ending ? ' ending' : ''}`} role="timer" aria-label={`Отдых, осталось ${formatRest(restLeft)}`}>
             <div className="rest-bar-fill" style={{ transform: `scaleX(${restProgress})` }} />
             <button className="rest-bar-main" onClick={() => setRestCollapsed(false)} aria-label="Развернуть таймер">
-              Отдых <b>{formatRest(restLeft)}</b>
+              Отдых <b key={pulseKey}>{formatRest(restLeft)}</b>
             </button>
             <button className="rest-bar-skip" onClick={stopRest}>
               Пропустить
@@ -260,7 +284,7 @@ export const SessionView: React.FC = () => {
           </div>
         )}
         {rest && !restCollapsed && (
-          <div className="rest-timer-overlay">
+          <div className={`rest-timer-overlay${ending ? ' ending' : ''}`}>
             <div className="rest-timer-circle">
               <svg width="100" height="100" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#95A2AE" strokeWidth="8" />
@@ -276,7 +300,9 @@ export const SessionView: React.FC = () => {
                   transform="rotate(-90 50 50)"
                 />
               </svg>
-              <div className="rest-timer-text">{formatRest(restLeft)}</div>
+              <div key={pulseKey} className="rest-timer-text">
+                {formatRest(restLeft)}
+              </div>
             </div>
             <div className="rest-timer-actions">
               <button className="rest-timer-skip secondary" onClick={() => setRestCollapsed(true)}>
@@ -293,6 +319,21 @@ export const SessionView: React.FC = () => {
             <h2>{program.title}</h2>
             <p className="lead">Тренировка идёт · {parseLocalDate(activeSession.date).toLocaleDateString('ru-RU')}</p>
           </div>
+          <div className="workout-progress">
+            <div
+              className="workout-bar"
+              role="progressbar"
+              aria-label="Прогресс тренировки"
+              aria-valuemin={0}
+              aria-valuemax={totalSets}
+              aria-valuenow={doneSets}
+            >
+              <div className="workout-bar-fill" style={{ transform: `scaleX(${totalSets ? doneSets / totalSets : 0})` }} />
+            </div>
+            <span className="workout-count">
+              {doneSets} из {totalSets} подходов
+            </span>
+          </div>
         </div>
         <ol className="ex">
           {program.items.map((item, idx) => {
@@ -301,11 +342,16 @@ export const SessionView: React.FC = () => {
             const doneAt = (i: number) => sets.find(s => s.exerciseId === item.exerciseId && s.index === i);
             // The next set to do gets the ± controls
             const currentRow = rows.find(i => !doneAt(i));
+            const done = doneOf(item);
+            const classes = [`m-${exercise?.muscle ?? 'core'}`, item.supersetWith && 'ss', idx === currentIdx && 'current', currentRow === undefined && 'complete'];
             return (
-              <li key={idx} className={item.supersetWith ? 'ss' : ''}>
+              <li key={idx} className={classes.filter(Boolean).join(' ')}>
                 <div className="row1">
                   <span className="num">{idx + 1}</span>
                   <h3>{exercise?.name ?? item.exerciseId}</h3>
+                  <span className="ex-count" aria-label={`Сделано ${done} из ${rows.length}`}>
+                    {done} из {rows.length}
+                  </span>
                 </div>
                 <div className="meta">
                   {formatSets(item.sets, item.repsLow, item.repsHigh) && <span className="sets">{formatSets(item.sets, item.repsLow, item.repsHigh)}</span>}
@@ -315,14 +361,12 @@ export const SessionView: React.FC = () => {
                 <div className="set-rows">
                   {rows.map(i => {
                     const key = draftKey(item.exerciseId, i);
-                    const done = doneAt(i);
+                    const doneSet = doneAt(i);
                     const draft = drafts[key] ?? { weight: '', reps: '' };
                     if (i === currentRow) {
                       return (
                         <div key={key} className="set-row current">
-                          <button className="set-dot" aria-label={`Записать подход ${i + 1}`} onClick={() => completeSet(item, i)}>
-                            {i + 1}
-                          </button>
+                          <SetDot n={i + 1} done={false} label={`Записать подход ${i + 1}`} onClick={() => completeSet(item, i)} />
                           <div className="steppers">
                             <Stepper value={draft.weight} unit="кг" step={2.5} label={`Вес, подход ${i + 1}`} inputMode="decimal" onChange={(v) => updateDraft(key, 'weight', v)} />
                             <Stepper id={`reps-${key}`} value={draft.reps} unit="повт" step={1} label={`Повторы, подход ${i + 1}`} inputMode="numeric" onChange={(v) => updateDraft(key, 'reps', v)} />
@@ -331,23 +375,16 @@ export const SessionView: React.FC = () => {
                       );
                     }
                     return (
-                      <div key={key} className={`set-row${done ? ' done' : ''}`}>
-                        <button
-                          className="set-dot"
-                          aria-label={done ? `Подход ${i + 1} записан` : `Записать подход ${i + 1}`}
-                          disabled={!!done}
-                          onClick={() => completeSet(item, i)}
-                        >
-                          {done ? '✓' : i + 1}
-                        </button>
+                      <div key={key} className={`set-row${doneSet ? ' done' : ''}`}>
+                        <SetDot n={i + 1} done={!!doneSet} label={doneSet ? `Подход ${i + 1} записан` : `Записать подход ${i + 1}`} onClick={() => completeSet(item, i)} />
                         <label className="set-field">
                           <input
                             type="text"
                             inputMode="decimal"
                             aria-label={`Вес, подход ${i + 1}`}
                             placeholder="—"
-                            value={done ? (done.weight ?? '') : draft.weight}
-                            disabled={!!done}
+                            value={doneSet ? (doneSet.weight ?? '') : draft.weight}
+                            disabled={!!doneSet}
                             onChange={(e) => updateDraft(key, 'weight', e.target.value)}
                           />
                           <span>кг</span>
@@ -359,8 +396,8 @@ export const SessionView: React.FC = () => {
                             inputMode="numeric"
                             aria-label={`Повторы, подход ${i + 1}`}
                             placeholder="—"
-                            value={done ? done.reps : draft.reps}
-                            disabled={!!done}
+                            value={doneSet ? doneSet.reps : draft.reps}
+                            disabled={!!doneSet}
                             onChange={(e) => updateDraft(key, 'reps', e.target.value)}
                           />
                           <span>повт</span>
@@ -417,7 +454,7 @@ export const SessionView: React.FC = () => {
         {program.items.map((item: any, idx: number) => {
           const exercise = exerciseMap[item.exerciseId];
           return (
-            <li key={idx} className={item.supersetWith ? 'ss' : ''}>
+            <li key={idx} className={[`m-${exercise?.muscle ?? 'core'}`, item.supersetWith && 'ss'].filter(Boolean).join(' ')}>
               <div className="row1">
                 <span className="num">{idx + 1}</span>
                 <h3>{exercise?.name ?? item.exerciseId}</h3>

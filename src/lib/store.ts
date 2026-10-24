@@ -9,12 +9,15 @@ interface GymState {
   init: () => Promise<void>;
   // Program
   getProgramDay: (dayId: 'mon' | 'wed' | 'fri') => Promise<ProgramDay | undefined>;
+  updateProgramDay: (day: ProgramDay) => Promise<void>;
   getExercise: (id: string) => Promise<Exercise | undefined>;
   getAllExercises: () => Promise<Exercise[]>;
   // Sessions
   addSession: (session: Omit<Session, 'id'>) => Promise<string>;
   getSessionById: (id: string) => Promise<Session | undefined>;
   getSessionsByDate: (date: string) => Promise<Session[]>;
+  // Inclusive YYYY-MM-DD range
+  getSessionsInRange: (from: string, to: string) => Promise<Session[]>;
   getActiveSessionToday: () => Promise<Session | null>;
   finishSession: (id: string, note: string) => Promise<void>;
   // Sets
@@ -69,6 +72,11 @@ export const useGymStore = create<GymState>((set, get) => ({
     return db.program.get(dayId);
   },
 
+  updateProgramDay: async (day) => {
+    await get().init();
+    await db.program.put(day);
+  },
+
   getExercise: async (id) => {
     await get().init();
     return db.exercises.get(id);
@@ -95,6 +103,11 @@ export const useGymStore = create<GymState>((set, get) => ({
   getSessionsByDate: async (date) => {
     await get().init();
     return db.sessions.where('date').equals(date).toArray();
+  },
+
+  getSessionsInRange: async (from, to) => {
+    await get().init();
+    return db.sessions.where('date').between(from, to, true, true).toArray();
   },
 
   getActiveSessionToday: async () => {
