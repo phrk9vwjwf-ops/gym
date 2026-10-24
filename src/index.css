@@ -1,6 +1,133 @@
+/* Design tokens — see TZ.md, раздел «Дизайн». Dark theme is the default. */
+:root {
+  --bg: #0E1216;
+  --card: rgba(255, 255, 255, 0.055);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --fill: rgba(255, 255, 255, 0.08);
+  --fill-strong: rgba(255, 255, 255, 0.14);
+  --glass: rgba(14, 18, 22, 0.72);
+  --text: #EDF1F5;
+  --text-2: #95A2AE;
+  --accent: #5AA9F5;
+  --accent-soft: rgba(90, 169, 245, 0.16);
+  /* Ink variants are for text and filled buttons; equal to the palette in dark, darker in light for 4.5:1 */
+  --accent-ink: #5AA9F5;
+  --on-accent: #0E1216;
+  --done: #4CC38A;
+  --done-soft: rgba(76, 195, 138, 0.16);
+  --done-ink: #4CC38A;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --blur: blur(24px) saturate(180%);
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  --dur: 280ms;
+  --dur-fast: 200ms;
+  --dur-slow: 320ms;
+
+  --radius: 16px;
+  --radius-s: 10px;
+  --tap: 44px;
+  --tabbar-h: 56px;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #EDF0F3;
+    --card: rgba(255, 255, 255, 0.72);
+    --card-border: rgba(16, 23, 32, 0.08);
+    --fill: rgba(16, 23, 32, 0.06);
+    --fill-strong: rgba(16, 23, 32, 0.1);
+    --glass: rgba(237, 240, 243, 0.72);
+    --text: #101720;
+    --text-2: #5C6873;
+    --accent: #2E7DD6;
+    --accent-soft: rgba(46, 125, 214, 0.12);
+    --accent-ink: #1C62B3;
+    --on-accent: #FFFFFF;
+    --done: #2E9E6B;
+    --done-soft: rgba(46, 158, 107, 0.14);
+    --done-ink: #237A52;
+    --shadow: 0 1px 2px rgba(16, 23, 32, 0.08);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #EDF0F3;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-border: rgba(16, 23, 32, 0.08);
+  --fill: rgba(16, 23, 32, 0.06);
+  --fill-strong: rgba(16, 23, 32, 0.1);
+  --glass: rgba(237, 240, 243, 0.72);
+  --text: #101720;
+  --text-2: #5C6873;
+  --accent: #2E7DD6;
+  --accent-soft: rgba(46, 125, 214, 0.12);
+  --accent-ink: #1C62B3;
+  --on-accent: #FFFFFF;
+  --done: #2E9E6B;
+  --done-soft: rgba(46, 158, 107, 0.14);
+  --done-ink: #237A52;
+  --shadow: 0 1px 2px rgba(16, 23, 32, 0.08);
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #0e1216;
-  color: #edf1f5;
+  min-height: 100dvh;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.35;
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+h2 { font-size: 22px; font-weight: 700; line-height: 1.2; }
+h3 { font-size: 17px; font-weight: 600; line-height: 1.25; }
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
