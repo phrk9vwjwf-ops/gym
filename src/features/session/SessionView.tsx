@@ -19,7 +19,7 @@ export const SessionView: React.FC = () => {
   // Rest timer state
   const [restTimeLeft, setRestTimeLeft] = useState<number>(0);
   const [isResting, setIsResting] = useState<boolean>(false);
-  const restIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [lastCompletedSetIndex, setLastCompletedSetIndex] = useState<number>(-1);
 
   // Determine nearest training day: mon/wed/fri, default to mon, but if today is tue/thu/sat/sun show next
@@ -235,7 +235,7 @@ export const SessionView: React.FC = () => {
           Начать тренировку
         </button>
       </div>
-      <div className="warm">{program.warm}</div>
+      <div className="warm">{program.warmup}</div>
       <ol className="ex">
         {program.items.map((item: any, idx: number) => {
           const exName = exerciseMap[item.exerciseId] ?? item.exerciseId;

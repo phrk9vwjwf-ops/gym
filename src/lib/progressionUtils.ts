@@ -1,9 +1,10 @@
-import { type Session, type SetEntry, type ProgramItem } from '@/db';
+import { type Exercise, type SetEntry, type ProgramItem } from '@/db';
 
 export const suggestWeightIncrement = async (
   sessionId: string,
   sets: SetEntry[],
-  programItems: ProgramItem[]
+  programItems: ProgramItem[],
+  exercises: Exercise[]
 ) => {
   const suggestions: Record<string, string> = {};
   // Group sets by exerciseId
@@ -15,15 +16,18 @@ export const suggestWeightIncrement = async (
   for (const exId in setsByExercise) {
     const exSets = setsByExercise[exId];
     const item = programItems.find(i => i.exerciseId === exId);
-    if (!item) continue;
+    // Open-ended items (to failure, ladder) have no top of range to reach
+    if (!item || item.repsHigh == null) continue;
+    const top = item.repsHigh;
+    const unit = exercises.find(e => e.id === exId)?.unit;
     // Check if all sets reached top of rep range
-    const allTop = exSets.every(s => s.reps >= item.repsHigh);
+    const allTop = exSets.every(s => s.reps >= top);
     if (allTop && exSets.length === item.sets) {
       // Suggest increment
       let incText = '';
-      if (item.unit === 'kg') {
+      if (unit === 'kg') {
         incText = 'в следующий раз +2,5 кг';
-      } else if (item.unit === 'bodyweight') {
+      } else if (unit === 'bodyweight') {
         // bodyweight exercises: maybe add reps?
         incText = 'в следующий раз +1 повтор';
       } else {

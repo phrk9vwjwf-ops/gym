@@ -16,6 +16,7 @@
   --done: #4CC38A;
   --done-soft: rgba(76, 195, 138, 0.16);
   --done-ink: #4CC38A;
+  --danger: #FF7B72;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 
   --blur: blur(24px) saturate(180%);
@@ -49,6 +50,7 @@
     --done: #2E9E6B;
     --done-soft: rgba(46, 158, 107, 0.14);
     --done-ink: #237A52;
+    --danger: #C2362F;
     --shadow: 0 1px 2px rgba(16, 23, 32, 0.08);
     color-scheme: light;
   }
@@ -70,6 +72,7 @@
   --done: #2E9E6B;
   --done-soft: rgba(46, 158, 107, 0.14);
   --done-ink: #237A52;
+  --danger: #C2362F;
   --shadow: 0 1px 2px rgba(16, 23, 32, 0.08);
   color-scheme: light;
 }

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGymStore } from '@/lib/store';
-import { markBackupDone } from '@/lib/pwaUtils';
+import { BackupError, exportBackup, importBackup, parseBackup, summarizeBackup } from '@/lib/backup';
 import { applyTheme } from '@/lib/theme';
 
 export const MoreView: React.FC = () => {
@@ -11,8 +11,8 @@ export const MoreView: React.FC = () => {
   const [weightTarget, setWeightTarget] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [backupStatus, setBackupStatus] = useState<string>('');
+  const [backupStatus, setBackupStatus] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -29,31 +29,44 @@ export const MoreView: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      // In a real app we would export the entire DB to JSON
-      // For now, we'll just trigger a backup reminder and show success
-      markBackupDone();
-      setBackupStatus('Экспорт выполнен (данные сохранены локально)');
+      const { sessions, sets } = await exportBackup();
+      setBackupStatus({ kind: 'ok', text: `Файл сохранён: тренировок ${sessions}, подходов ${sets}` });
     } catch (e) {
-      setBackupStatus('Ошибка экспорта');
       console.error(e);
+      setBackupStatus({ kind: 'error', text: 'Не удалось сохранить файл' });
     } finally {
       setExporting(false);
     }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
+    // Allow picking the same file again
+    input.value = '';
     if (!file) return;
-    setImportFile(file);
     setImporting(true);
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      // Here we would import into Dexie - for now just show success
-      setBackupStatus('Импорт выполнен (заглушка)');
+      const backup = parseBackup(await file.text());
+      const { exportedAt, sessions, sets } = summarizeBackup(backup);
+      const when = new Date(exportedAt).toLocaleString('ru-RU');
+      if (!window.confirm(`Заменить все данные копией от ${when}?\nВ копии тренировок: ${sessions}, подходов: ${sets}.\nТекущие данные на устройстве будут удалены.`)) {
+        setBackupStatus({ kind: 'info', text: 'Восстановление отменено, данные не изменены' });
+        return;
+      }
+      await importBackup(backup);
+      const s = await getSettings();
+      setTheme(s.theme);
+      setUnits(s.units);
+      setWeightTarget(s.weightTarget ?? null);
+      applyTheme(s.theme);
+      setBackupStatus({ kind: 'ok', text: `Восстановлено: тренировок ${sessions}, подходов ${sets}` });
     } catch (err) {
-      setBackupStatus('Ошибка импорта: неверный формат');
       console.error(err);
+      setBackupStatus({
+        kind: 'error',
+        text: err instanceof BackupError ? `${err.message}. Данные не изменены` : 'Не удалось восстановить копию. Данные не изменены',
+      });
     } finally {
       setImporting(false);
     }
@@ -94,7 +107,7 @@ export const MoreView: React.FC = () => {
         </div>
         <button className="pri" onClick={async () => {
           await updateSettings({ theme, units, weightTarget });
-          setBackupStatus('Настройки сохранены');
+          setBackupStatus({ kind: 'ok', text: 'Настройки сохранены' });
         }}>
           Сохранить настройки
         </button>
@@ -107,19 +120,13 @@ export const MoreView: React.FC = () => {
           чтобы не потерять историю тренировок.
         </p>
         <button className="pri" onClick={handleExport} disabled={exporting}>
-          {exporting ? 'Экспорт...' : 'Экспорт данных'}
+          {exporting ? 'Сохранение...' : 'Сохранить копию в файл'}
         </button>
-        <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-        <button className="pri" onClick={() => {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = '.json';
-          input.onChange = handleImport;
-          input.click();
-        }} disabled={importing}>
-          {importing ? 'Импорт...' : 'Импорт данных'}
+        <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleImport} className="hidden" />
+        <button className="pri" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+          {importing ? 'Восстановление...' : 'Восстановить из файла'}
         </button>
-        {backupStatus && <p className={`backup-status ${exporting || importing ? 'pending' : ''}`}>{backupStatus}</p>}
+        {backupStatus && <p className={`backup-status ${backupStatus.kind}`} role="status">{backupStatus.text}</p>}
       </div>
 
       <div className="about-section">

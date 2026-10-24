@@ -10,17 +10,19 @@ export interface Exercise {
 
 export interface ProgramDay {
   id: 'mon' | 'wed' | 'fri';
-  name: string;
+  title: string;
+  lead: string;
   warmup: string;
   items: ProgramItem[];
 }
 
 export interface ProgramItem {
   exerciseId: string;
-  sets: number;
-  repsLow: number;
-  repsHigh: number;
-  restSec: number;
+  // null = open-ended (to failure / ladder without fixed rest)
+  sets: number | null;
+  repsLow: number | null;
+  repsHigh: number | null;
+  restSec: number | null;
   startWeight: number | null;
   supersetWith?: string;
 }
@@ -46,17 +48,20 @@ export interface SetEntry {
 }
 
 export interface BodyWeight {
+  id: string;
   date: string;
   kg: number;
 }
 
 export interface MaxTest {
+  id: string;
   date: string;
   kind: 'pullup' | 'dip';
   reps: number;
 }
 
 export interface Settings {
+  id: number; // single row, always 1
   theme: 'auto' | 'light' | 'dark';
   units: 'metric' | 'imperial';
   cycleStart: string; // YYYY-MM-DD
@@ -70,7 +75,7 @@ export class GymDB extends Dexie {
   sets!: Table<SetEntry, string>;
   bodyweight!: Table<BodyWeight, string>;
   maxes!: Table<MaxTest, string>;
-  settings!: Table<Settings, string>;
+  settings!: Table<Settings, number>;
 
   constructor() {
     super('GymDB');

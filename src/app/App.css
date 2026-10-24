@@ -364,9 +364,14 @@ select:focus-visible {
 .backup-status {
   margin: 0;
   font-size: 15px;
+}
+.backup-status.ok {
   color: var(--done-ink);
 }
-.backup-status.pending {
+.backup-status.error {
+  color: var(--danger);
+}
+.backup-status.info {
   color: var(--text-2);
 }
 

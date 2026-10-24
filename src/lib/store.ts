@@ -14,7 +14,7 @@ interface GymState {
   addSession: (session: Omit<Session, 'id'>) => Promise<string>;
   getSessionById: (id: string) => Promise<Session | undefined>;
   getSessionsByDate: (date: string) => Promise<Session[]>;
-  getActiveSessionToday: () => Promise<Session | undefined>;
+  getActiveSessionToday: () => Promise<Session | null>;
   finishSession: (id: string, note: string) => Promise<void>;
   // Sets
   getSetsBySession: (sessionId: string) => Promise<SetEntry[]>;
@@ -150,12 +150,13 @@ export const useGymStore = create<GymState>((set, get) => ({
     let settings = await db.settings.get(1);
     if (!settings) {
       const defaults: Settings = {
+        id: 1,
         theme: 'auto',
         units: 'metric',
         cycleStart: new Date().toISOString().split('T')[0],
         weightTarget: null,
       };
-      await db.settings.put({ id: 1, ...defaults });
+      await db.settings.put(defaults);
       settings = defaults;
     }
     return settings;
