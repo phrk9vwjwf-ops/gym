@@ -1,4 +1,5 @@
 import React from 'react';
+import { parseLocalDate } from '@/lib/date';
 
 type Point = { date: string; kg: number };
 
@@ -11,7 +12,7 @@ const WeightChart: React.FC<{ series: Point[] }> = ({ series }) => {
   const height = 200;
   const padding = 40;
 
-  const dates = series.map(p => new Date(p.date));
+  const dates = series.map(p => parseLocalDate(p.date));
   const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
   const kgValues = series.map(p => p.kg);
@@ -24,7 +25,7 @@ const WeightChart: React.FC<{ series: Point[] }> = ({ series }) => {
   const x = (date: Date) => dateSpan === 0 ? width / 2 : padding + ((date.getTime() - minDate.getTime()) / dateSpan) * (width - 2 * padding);
   const y = (kg: number) => kgRange === 0 ? height / 2 : height - padding - ((kg - minKg) / kgRange) * (height - 2 * padding);
 
-  const linePoints = series.map(p => `${x(new Date(p.date))},${y(p.kg)}`).join(' ');
+  const linePoints = series.map(p => `${x(parseLocalDate(p.date))},${y(p.kg)}`).join(' ');
 
   return (
     <div className="chart-container">
@@ -38,7 +39,7 @@ const WeightChart: React.FC<{ series: Point[] }> = ({ series }) => {
         <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#95A2AE" strokeWidth="1" />
         {/* points */}
         {series.map((p, i) => (
-          <circle key={i} cx={x(new Date(p.date))} cy={y(p.kg)} r={4} fill="#5AA9F5" />
+          <circle key={i} cx={x(parseLocalDate(p.date))} cy={y(p.kg)} r={4} fill="#5AA9F5" />
         ))}
         {/* labels */}
         <text x={width / 2} y={height - 10} textAnchor="middle" fontSize="12" fill="#95A2AE">

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { db, type Exercise, type ProgramDay, type ProgramItem, type Session, type SetEntry, type BodyWeight, type MaxTest, type Settings } from '../db';
 import { DEFAULT_EXERCISES, DEFAULT_PROGRAM } from '@/lib/seed';
+import { localDate } from '@/lib/date';
 
 interface GymState {
   ready: boolean;
@@ -96,7 +97,7 @@ export const useGymStore = create<GymState>((set, get) => ({
 
   getActiveSessionToday: async () => {
     await get().init();
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDate();
     const sessions = await db.sessions.where('date').equals(today).toArray();
     const active = sessions.find(s => !s.finishedAt);
     return active ?? null;
@@ -154,19 +155,22 @@ export const useGymStore = create<GymState>((set, get) => ({
   // Settings
   getSettings: async () => {
     await get().init();
-    let settings = await db.settings.get(1);
+    const defaults: Settings = {
+      id: 1,
+      theme: 'auto',
+      units: 'metric',
+      cycleStart: localDate(),
+      weightTarget: null,
+      heightCm: 180,
+      age: 22,
+    };
+    const settings = await db.settings.get(1);
     if (!settings) {
-      const defaults: Settings = {
-        id: 1,
-        theme: 'auto',
-        units: 'metric',
-        cycleStart: new Date().toISOString().split('T')[0],
-        weightTarget: null,
-      };
       await db.settings.put(defaults);
-      settings = defaults;
+      return defaults;
     }
-    return settings;
+    // Rows saved before a field existed get its default
+    return { ...defaults, ...settings };
   },
   updateSettings: async (changes) => {
     await get().init();

@@ -1,4 +1,5 @@
 import React from 'react';
+import { parseLocalDate } from '@/lib/date';
 
 type Point = { date: string; estimatedMax: number; weight: number | null; reps: number };
 
@@ -11,7 +12,7 @@ const ExerciseProgressChart: React.FC<{ series: Point[]; exerciseId: string }> =
   const height = 200;
   const padding = 40;
 
-  const dates = series.map(p => new Date(p.date));
+  const dates = series.map(p => parseLocalDate(p.date));
   const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
   const maxValues = series.map(p => p.estimatedMax);
@@ -24,7 +25,7 @@ const ExerciseProgressChart: React.FC<{ series: Point[]; exerciseId: string }> =
   const x = (date: Date) => dateSpan === 0 ? width / 2 : padding + ((date.getTime() - minDate.getTime()) / dateSpan) * (width - 2 * padding);
   const y = (value: number) => range === 0 ? height / 2 : height - padding - ((value - minMax) / range) * (height - 2 * padding);
 
-  const linePoints = series.map(p => `${x(new Date(p.date))},${y(p.estimatedMax)}`).join(' ');
+  const linePoints = series.map(p => `${x(parseLocalDate(p.date))},${y(p.estimatedMax)}`).join(' ');
 
   return (
     <div className="chart-container">
@@ -34,7 +35,7 @@ const ExerciseProgressChart: React.FC<{ series: Point[]; exerciseId: string }> =
         <path d={`M${linePoints}`} fill="none" stroke="#5AA9F5" strokeWidth="2" />
         {/* actual reps as points? spec: line of estimated max and points of actual sets */}
         {series.map((p, i) => (
-          <circle key={i} cx={x(new Date(p.date))} cy={y(p.estimatedMax)} r={3} fill="#4CC38A" />
+          <circle key={i} cx={x(parseLocalDate(p.date))} cy={y(p.estimatedMax)} r={3} fill="#4CC38A" />
         ))}
         {/* axes */}
         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#95A2AE" strokeWidth="1" />

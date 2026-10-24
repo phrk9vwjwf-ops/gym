@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGymStore } from '@/lib/store';
+import { localDate, parseLocalDate } from '@/lib/date';
 
 // "3×6–8", "3×15" when the range is a single number, "3 подх." when reps are open (to failure)
 const formatSets = (sets: number | null, repsLow: number | null, repsHigh: number | null) => {
@@ -24,7 +25,7 @@ export const SessionView: React.FC = () => {
 
   // Determine nearest training day: mon/wed/fri, default to mon, but if today is tue/thu/sat/sun show next
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localDate();
     setToday(todayStr);
     const day = new Date().getDay(); // 0 Sun,1 Mon,2 Tue,3 Wed,4 Thu,5 Fri,6 Sat
     let id: 'mon' | 'wed' | 'fri' = 'mon';
@@ -142,7 +143,7 @@ export const SessionView: React.FC = () => {
         <div className="dayhead">
           <div>
             <h2>Тренировка в процессе</h2>
-            <p className="lead">{new Date(activeSession.date).toLocaleDateString()}</p>
+            <p className="lead">{parseLocalDate(activeSession.date).toLocaleDateString('ru-RU')}</p>
           </div>
           <button className="pri" onClick={() => useGymStore.getState().finishSession(activeSession.id, 'Завершено досрочно')}>
             Завершить тренировку

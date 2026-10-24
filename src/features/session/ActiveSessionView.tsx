@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
+import { parseLocalDate } from '@/lib/date';
 
 export const ActiveSessionView: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -97,7 +98,7 @@ export const ActiveSessionView: React.FC = () => {
       <div className="dayhead">
         <div>
           <h2>Тренировка в процессе</h2>
-          <p className="lead">{new Date(session.date).toLocaleDateString()}</p>
+          <p className="lead">{parseLocalDate(session.date).toLocaleDateString('ru-RU')}</p>
         </div>
         <button className="pri" onClick={() => useGymStore.getState().finishSession(session.id, 'Завершено досрочно')}>
           Завершить тренировку

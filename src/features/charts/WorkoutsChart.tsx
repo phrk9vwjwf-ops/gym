@@ -1,4 +1,5 @@
 import React from 'react';
+import { parseLocalDate } from '@/lib/date';
 
 type WeekData = Record<string, number>; // weekStartDate -> count
 
@@ -27,7 +28,7 @@ const WorkoutsChart: React.FC<{ data: WeekData }> = ({ data }) => {
             <React.Fragment key={weekStart}>
               <rect x={x} y={y} width={barWidth} height={barHeight} fill="#5AA9F5" />
               <text x={x + barWidth / 2} y={height - padding + 15} textAnchor="middle" fontSize="10" fill="#95A2AE">
-                {new Date(weekStart).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })}
+                {parseLocalDate(weekStart).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })}
               </text>
             </React.Fragment>
           );

@@ -1,12 +1,12 @@
 import { type Session, type SetEntry, type BodyWeight, type MaxTest } from '@/db';
+import { addDays, localDate, weekStart } from '@/lib/date';
 
+// Every date from the Monday `weeks - 1` weeks ago through today, so each week bar is a full Mon–Sun week
 export const getWeeksRange = (weeks: number) => {
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(today.getDate() - (weeks * 7) + 1); // inclusive start
+  const today = localDate();
   const dates: string[] = [];
-  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
-    dates.push(d.toISOString().split('T')[0]);
+  for (let d = addDays(weekStart(today), -(weeks - 1) * 7); d <= today; d = addDays(d, 1)) {
+    dates.push(d);
   }
   return dates;
 };
@@ -18,10 +18,7 @@ export const aggregateTonnageByWeek = async (sets: SetEntry[], sessions: Session
   sets.forEach(set => {
     const sess = sessionMap.get(set.sessionId);
     if (!sess) return;
-    const date = new Date(sess.date);
-    const weekStart = new Date(date);
-    weekStart.setDate(date.getDate() - date.getDay()); // Monday start
-    const weekKey = weekStart.toISOString().split('T')[0];
+    const weekKey = weekStart(sess.date);
     const weight = set.weight ?? 0; // bodyweight treat as 0? maybe use estimated? For tonnage we ignore bodyweight? We'll treat as 0 for now.
     const tonnage = weight * set.reps;
     weekTonnage[weekKey] = (weekTonnage[weekKey] || 0) + tonnage;
@@ -33,10 +30,7 @@ export const aggregateWorkoutsPerWeek = async (sessions: Session[]) => {
   const weekCounts: Record<string, number> = {};
   sessions.forEach(s => {
     if (s.finishedAt === null) return;
-    const date = new Date(s.date);
-    const weekStart = new Date(date);
-    weekStart.setDate(date.getDate() - date.getDay());
-    const weekKey = weekStart.toISOString().split('T')[0];
+    const weekKey = weekStart(s.date);
     weekCounts[weekKey] = (weekCounts[weekKey] || 0) + 1;
   });
   return weekCounts;
@@ -47,7 +41,7 @@ export const getBodyWeightSeries = async (bodyweights: BodyWeight[]) => {
   bodyweights.forEach(bw => {
     series.push({ date: bw.date, kg: bw.kg });
   });
-  series.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  series.sort((a, b) => a.date.localeCompare(b.date));
   return series;
 };
 
@@ -68,6 +62,6 @@ export const getExerciseProgress = async (exerciseId: string, sets: SetEntry[], 
       reps: set.reps
     });
   });
-  points.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  points.sort((a, b) => a.date.localeCompare(b.date));
   return points;
 };

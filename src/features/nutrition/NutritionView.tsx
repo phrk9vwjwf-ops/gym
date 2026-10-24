@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
-import { localDate } from '@/lib/date';
-
-// Placeholder profile until it moves to settings
-const HEIGHT_CM = 180;
-const AGE = 26;
+import { localDate, parseLocalDate } from '@/lib/date';
 
 // Mifflin-St Jeor (male), moderate activity, ±500 kcal/day for ~0.5 kg/week toward the target
-const calcNorm = (weight: number | null, weightTarget: number | null) => {
+const calcNorm = (weight: number | null, weightTarget: number | null, heightCm: number, age: number) => {
   if (weight === null || !(weight > 0)) return { calories: 0, protein: 0, weeksToTarget: null };
-  const bmr = 10 * weight + 6.25 * HEIGHT_CM - 5 * AGE + 5;
+  const bmr = 10 * weight + 6.25 * heightCm - 5 * age + 5;
   const maintenance = bmr * 1.55;
   const target = weightTarget ?? weight;
   const diff = target - weight;
@@ -27,6 +23,7 @@ export const NutritionView: React.FC = () => {
   const [weight, setWeight] = useState<number | null>(null);
   const [weightDate, setWeightDate] = useState<string | null>(null);
   const [weightTarget, setWeightTarget] = useState<number | null>(null);
+  const [profile, setProfile] = useState<{ heightCm: number; age: number } | null>(null);
   const today = localDate();
 
   useEffect(() => {
@@ -34,6 +31,7 @@ export const NutritionView: React.FC = () => {
       if (!ready) return;
       const s = await getSettings();
       setWeightTarget(s.weightTarget ?? null);
+      setProfile({ heightCm: s.heightCm, age: s.age });
       const bw = await getBodyWeight(localDate());
       if (bw) {
         setWeight(bw.kg);
@@ -44,7 +42,9 @@ export const NutritionView: React.FC = () => {
   }, [ready]);
 
   // Derived on render, so it always matches the inputs
-  const { calories, protein, weeksToTarget } = calcNorm(weight, weightTarget);
+  const { calories, protein, weeksToTarget } = profile
+    ? calcNorm(weight, weightTarget, profile.heightCm, profile.age)
+    : { calories: 0, protein: 0, weeksToTarget: null };
 
   const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value === '' ? null : parseFloat(e.target.value);
@@ -62,13 +62,16 @@ export const NutritionView: React.FC = () => {
     <section className="nutrition-view">
       <div className="nutrition-card">
         <h2>Норма калорий и белка</h2>
+        {profile && (
+          <p className="nutrition-hint">Рост {profile.heightCm} см, возраст {profile.age} — меняются во вкладке «Ещё»</p>
+        )}
         <div className="nutrition-fields">
           <div>
             <label>Текущий вес, кг:</label>
             <input type="number" inputMode="decimal" step="0.1" min="0" value={weight ?? ''} onChange={handleWeightChange} className="nutrition-input"/>
           </div>
           {weightDate && weightDate !== today && (
-            <p className="nutrition-hint">Последнее взвешивание {new Date(weightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</p>
+            <p className="nutrition-hint">Последнее взвешивание {parseLocalDate(weightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</p>
           )}
           <div>
             <label>Целевой вес, кг:</label>

@@ -66,7 +66,15 @@ export interface Settings {
   units: 'metric' | 'imperial';
   cycleStart: string; // YYYY-MM-DD
   weightTarget: number | null;
+  // Profile for the calorie norm
+  heightCm: number;
+  age: number;
 }
+
+export const PROFILE_LIMITS = {
+  heightCm: { min: 100, max: 250 },
+  age: { min: 10, max: 100 },
+};
 
 export class GymDB extends Dexie {
   exercises!: Table<Exercise, string>;

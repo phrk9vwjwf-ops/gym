@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGymStore } from '@/lib/store';
+import { PROFILE_LIMITS } from '@/db';
 import { BackupError, exportBackup, importBackup, parseBackup, summarizeBackup } from '@/lib/backup';
 import { applyTheme } from '@/lib/theme';
 
@@ -9,6 +10,9 @@ export const MoreView: React.FC = () => {
   const [theme, setTheme] = useState<'auto' | 'light' | 'dark'>('auto');
   const [units, setUnits] = useState<'metric' | 'imperial'>('metric');
   const [weightTarget, setWeightTarget] = useState<number | null>(null);
+  // Kept as typed text so the field can be cleared while editing
+  const [heightCm, setHeightCm] = useState('');
+  const [age, setAge] = useState('');
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [backupStatus, setBackupStatus] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
@@ -22,6 +26,8 @@ export const MoreView: React.FC = () => {
       setTheme(s.theme);
       setUnits(s.units);
       setWeightTarget(s.weightTarget ?? null);
+      setHeightCm(String(s.heightCm));
+      setAge(String(s.age));
     };
     loadSettings();
   }, [ready]);
@@ -59,6 +65,8 @@ export const MoreView: React.FC = () => {
       setTheme(s.theme);
       setUnits(s.units);
       setWeightTarget(s.weightTarget ?? null);
+      setHeightCm(String(s.heightCm));
+      setAge(String(s.age));
       applyTheme(s.theme);
       setBackupStatus({ kind: 'ok', text: `Восстановлено: тренировок ${sessions}, подходов ${sets}` });
     } catch (err) {
@@ -105,8 +113,23 @@ export const MoreView: React.FC = () => {
             setWeightTarget(val);
           }} className="setting-input"/>
         </div>
+        <div className="setting-row">
+          <label htmlFor="setting-height">Рост (см):</label>
+          <input id="setting-height" type="number" inputMode="numeric" step="1" min={PROFILE_LIMITS.heightCm.min} max={PROFILE_LIMITS.heightCm.max} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className="setting-input"/>
+        </div>
+        <div className="setting-row">
+          <label htmlFor="setting-age">Возраст (лет):</label>
+          <input id="setting-age" type="number" inputMode="numeric" step="1" min={PROFILE_LIMITS.age.min} max={PROFILE_LIMITS.age.max} value={age} onChange={(e) => setAge(e.target.value)} className="setting-input"/>
+        </div>
         <button className="pri" onClick={async () => {
-          await updateSettings({ theme, units, weightTarget });
+          const h = Number(heightCm);
+          const a = Number(age);
+          const { heightCm: hl, age: al } = PROFILE_LIMITS;
+          if (!Number.isInteger(h) || h < hl.min || h > hl.max || !Number.isInteger(a) || a < al.min || a > al.max) {
+            setBackupStatus({ kind: 'error', text: `Рост — целое число ${hl.min}–${hl.max} см, возраст — ${al.min}–${al.max} лет. Настройки не сохранены` });
+            return;
+          }
+          await updateSettings({ theme, units, weightTarget, heightCm: h, age: a });
           setBackupStatus({ kind: 'ok', text: 'Настройки сохранены' });
         }}>
           Сохранить настройки
