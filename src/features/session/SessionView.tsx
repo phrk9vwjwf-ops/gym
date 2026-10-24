@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGymStore } from '@/lib/store';
 
+// "3×6–8", "3×15" when the range is a single number, "3 подх." when reps are open (to failure)
+const formatSets = (sets: number | null, repsLow: number | null, repsHigh: number | null) => {
+  if (!sets) return null;
+  if (repsLow == null && repsHigh == null) return `${sets} подх.`;
+  if (repsLow == null || repsHigh == null || repsLow === repsHigh) return `${sets}×${repsLow ?? repsHigh}`;
+  return `${sets}×${repsLow}–${repsHigh}`;
+};
+
 export const SessionView: React.FC = () => {
   const [dayId, setDayId] = useState<'mon' | 'wed' | 'fri'>('mon');
   const [program, setProgram] = useState<any>(null);
@@ -150,8 +158,8 @@ export const SessionView: React.FC = () => {
                   <h3>{exName}</h3>
                 </div>
                 <div className="meta">
-                  <span className="sets">{set.sets}×{set.repsLow}–{set.repsHigh}</span>
-                  <span className="rest">отдых {set.restSec}с</span>
+                  {formatSets(set.sets, set.repsLow, set.repsHigh) && <span className="sets">{formatSets(set.sets, set.repsLow, set.repsHigh)}</span>}
+                  {set.restSec ? <span className="rest">отдых {set.restSec}с</span> : null}
                 </div>
                 {set.t && <p className="tip">{set.t}</p>}
                 <div className="wt">
@@ -180,8 +188,8 @@ export const SessionView: React.FC = () => {
                       setLastCompletedSetIndex(idx);
                       // Find restSec from program item
                       const item = program.items.find((i: any) => i.exerciseId === set.exerciseId);
-                      const restSec = item ? item.restSec : 15;
-                      startRestTimer(restSec);
+                      const restSec = item ? item.restSec ?? 0 : 15;
+                      if (restSec > 0) startRestTimer(restSec);
                     });
                   }}>
                     Завершить подход
@@ -238,13 +246,13 @@ export const SessionView: React.FC = () => {
                 <h3>{exName}</h3>
               </div>
               <div className="meta">
-                <span className="sets">{item.sets}×{item.repsLow}–{item.repsHigh}</span>
-                <span className="rest">отдых {item.restSec}с</span>
+                {formatSets(item.sets, item.repsLow, item.repsHigh) && <span className="sets">{formatSets(item.sets, item.repsLow, item.repsHigh)}</span>}
+                {item.restSec ? <span className="rest">отдых {item.restSec}с</span> : null}
               </div>
               {item.t && <p className="tip">{item.t}</p>}
               <div className="wt">
                 <span>
-                  Старт: <b>{item.startWeight ?? '-'}</b>{item.was ? ` · было {item.was}` : ''}
+                  Старт: <b>{item.startWeight ?? '-'}</b>{item.was ? ` · было ${item.was}` : ''}
                 </span>
                 <label>
                   Мой вес <input type="text" inputMode="decimal" defaultValue="" />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
+import { applyTheme } from '@/lib/theme';
 import SessionView from '@/features/session/SessionView';
 import ChartsView from '@/features/charts/ChartsView';
 import MoreView from '@/features/more/MoreView';
@@ -25,6 +26,8 @@ export const App: React.FC = () => {
     const initStore = async () => {
       try {
         await useGymStore.getState().init();
+        const settings = await useGymStore.getState().getSettings();
+        applyTheme(settings.theme);
         setLocalReady(true);
         setLocalError(null);
       } catch (e: any) {

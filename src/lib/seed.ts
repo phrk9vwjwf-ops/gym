@@ -69,10 +69,11 @@ export const DEFAULT_PROGRAM = {
     items: [
       {
         exerciseId: "pullup-ladder",
-        sets: null,
-        repsLow: null,
-        repsHigh: null,
-        restSec: null,
+        // 3 ladders, steps 1→4 reps; rest is between steps (≈10 s per rep done), so no timer between sets
+        sets: 3,
+        repsLow: 1,
+        repsHigh: 4,
+        restSec: 0,
         startWeight: null,
         supersetWith: undefined
       },

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGymStore } from '@/lib/store';
 import { markBackupDone } from '@/lib/pwaUtils';
+import { applyTheme } from '@/lib/theme';
 
 export const MoreView: React.FC = () => {
   const { ready, getSettings, updateSettings, addBodyWeight, addMaxTest } = useGymStore();
@@ -66,7 +67,12 @@ export const MoreView: React.FC = () => {
         <h2>Настройки</h2>
         <div className="setting-row">
           <span>Тема:</span>
-          <select value={theme} onChange={(e) => setTheme(e.target.value as any)} className="setting-select">
+          <select value={theme} onChange={(e) => {
+            const next = e.target.value as 'auto' | 'light' | 'dark';
+            setTheme(next);
+            applyTheme(next);
+            updateSettings({ theme: next });
+          }} className="setting-select">
             <option value="auto">Авто</option>
             <option value="light">Светлая</option>
             <option value="dark">Тёмная</option>
