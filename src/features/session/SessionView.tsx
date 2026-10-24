@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGymStore } from '@/lib/store';
 import { localDate, parseLocalDate } from '@/lib/date';
-import type { ProgramDay, ProgramItem, Session, SetEntry } from '@/db';
+import type { Exercise, ProgramDay, ProgramItem, Session, SetEntry } from '@/db';
 
 type DayId = ProgramDay['id'];
 type Draft = { weight: string; reps: string };
@@ -27,10 +27,50 @@ const dayForToday = (): DayId => {
 
 const RING = 2 * Math.PI * 40;
 
+// Adds delta to a typed number ("32,5" works too), never below zero
+const bump = (value: string, delta: number) => {
+  const v = parseFloat(value.replace(',', '.'));
+  const next = Math.max(0, (Number.isFinite(v) ? v : 0) + delta);
+  return String(Math.round(next * 100) / 100);
+};
+
+const formatRest = (sec: number) => (sec >= 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : `${sec}с`);
+
+const Stepper: React.FC<{
+  id?: string;
+  value: string;
+  unit: string;
+  step: number;
+  label: string;
+  inputMode: 'decimal' | 'numeric';
+  onChange: (value: string) => void;
+}> = ({ id, value, unit, step, label, inputMode, onChange }) => (
+  <div className="stepper">
+    <button type="button" className="step-btn" aria-label={`${label}: −${String(step).replace('.', ',')}`} onClick={() => onChange(bump(value, -step))}>
+      −
+    </button>
+    <label className="stepper-field">
+      <input id={id} type="text" inputMode={inputMode} aria-label={label} placeholder="—" value={value} onChange={(e) => onChange(e.target.value)} />
+      <span>{unit}</span>
+    </label>
+    <button type="button" className="step-btn" aria-label={`${label}: +${String(step).replace('.', ',')}`} onClick={() => onChange(bump(value, step))}>
+      +
+    </button>
+  </div>
+);
+
+const HowTo: React.FC<{ cue?: string }> = ({ cue }) =>
+  cue ? (
+    <details className="howto">
+      <summary>Как делать</summary>
+      <p>{cue}</p>
+    </details>
+  ) : null;
+
 export const SessionView: React.FC = () => {
   const [dayId, setDayId] = useState<DayId>(dayForToday);
   const [program, setProgram] = useState<ProgramDay | null>(null);
-  const [exerciseMap, setExerciseMap] = useState<Record<string, string>>({});
+  const [exerciseMap, setExerciseMap] = useState<Record<string, Exercise>>({});
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [sets, setSets] = useState<SetEntry[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -38,6 +78,8 @@ export const SessionView: React.FC = () => {
   // Rest timer counts down to a timestamp, so it stays correct after the phone sleeps
   const [rest, setRest] = useState<{ endAt: number; total: number } | null>(null);
   const [now, setNow] = useState(Date.now());
+  // Once collapsed, later rests also start as the top bar
+  const [restCollapsed, setRestCollapsed] = useState(false);
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -45,9 +87,9 @@ export const SessionView: React.FC = () => {
       const prog = await useGymStore.getState().getProgramDay(dayId);
       setProgram(prog ?? null);
       const allEx = await useGymStore.getState().getAllExercises();
-      const map: Record<string, string> = {};
+      const map: Record<string, Exercise> = {};
       allEx.forEach(ex => {
-        map[ex.id] = ex.name;
+        map[ex.id] = ex;
       });
       setExerciseMap(map);
     })();
@@ -206,7 +248,18 @@ export const SessionView: React.FC = () => {
     const restProgress = rest ? Math.min(1, Math.max(0, (rest.endAt - now) / (rest.total * 1000))) : 0;
     return (
       <section className="session-view">
-        {rest && (
+        {rest && restCollapsed && (
+          <div className="rest-bar" role="timer" aria-label={`Отдых, осталось ${formatRest(restLeft)}`}>
+            <div className="rest-bar-fill" style={{ transform: `scaleX(${restProgress})` }} />
+            <button className="rest-bar-main" onClick={() => setRestCollapsed(false)} aria-label="Развернуть таймер">
+              Отдых <b>{formatRest(restLeft)}</b>
+            </button>
+            <button className="rest-bar-skip" onClick={stopRest}>
+              Пропустить
+            </button>
+          </div>
+        )}
+        {rest && !restCollapsed && (
           <div className="rest-timer-overlay">
             <div className="rest-timer-circle">
               <svg width="100" height="100" viewBox="0 0 100 100">
@@ -223,11 +276,16 @@ export const SessionView: React.FC = () => {
                   transform="rotate(-90 50 50)"
                 />
               </svg>
-              <div className="rest-timer-text">{restLeft}с</div>
+              <div className="rest-timer-text">{formatRest(restLeft)}</div>
             </div>
-            <button className="rest-timer-skip" onClick={stopRest}>
-              Пропустить
-            </button>
+            <div className="rest-timer-actions">
+              <button className="rest-timer-skip secondary" onClick={() => setRestCollapsed(true)}>
+                Свернуть
+              </button>
+              <button className="rest-timer-skip" onClick={stopRest}>
+                Пропустить
+              </button>
+            </div>
           </div>
         )}
         <div className="dayhead">
@@ -238,23 +296,40 @@ export const SessionView: React.FC = () => {
         </div>
         <ol className="ex">
           {program.items.map((item, idx) => {
-            const exName = exerciseMap[item.exerciseId] ?? item.exerciseId;
+            const exercise = exerciseMap[item.exerciseId];
             const rows = Array.from({ length: item.sets ?? 1 }, (_, i) => i);
+            const doneAt = (i: number) => sets.find(s => s.exerciseId === item.exerciseId && s.index === i);
+            // The next set to do gets the ± controls
+            const currentRow = rows.find(i => !doneAt(i));
             return (
               <li key={idx} className={item.supersetWith ? 'ss' : ''}>
                 <div className="row1">
                   <span className="num">{idx + 1}</span>
-                  <h3>{exName}</h3>
+                  <h3>{exercise?.name ?? item.exerciseId}</h3>
                 </div>
                 <div className="meta">
                   {formatSets(item.sets, item.repsLow, item.repsHigh) && <span className="sets">{formatSets(item.sets, item.repsLow, item.repsHigh)}</span>}
                   {item.restSec ? <span className="rest">отдых {item.restSec}с</span> : null}
                 </div>
+                <HowTo cue={exercise?.cue} />
                 <div className="set-rows">
                   {rows.map(i => {
                     const key = draftKey(item.exerciseId, i);
-                    const done = sets.find(s => s.exerciseId === item.exerciseId && s.index === i);
+                    const done = doneAt(i);
                     const draft = drafts[key] ?? { weight: '', reps: '' };
+                    if (i === currentRow) {
+                      return (
+                        <div key={key} className="set-row current">
+                          <button className="set-dot" aria-label={`Записать подход ${i + 1}`} onClick={() => completeSet(item, i)}>
+                            {i + 1}
+                          </button>
+                          <div className="steppers">
+                            <Stepper value={draft.weight} unit="кг" step={2.5} label={`Вес, подход ${i + 1}`} inputMode="decimal" onChange={(v) => updateDraft(key, 'weight', v)} />
+                            <Stepper id={`reps-${key}`} value={draft.reps} unit="повт" step={1} label={`Повторы, подход ${i + 1}`} inputMode="numeric" onChange={(v) => updateDraft(key, 'reps', v)} />
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={key} className={`set-row${done ? ' done' : ''}`}>
                         <button
@@ -340,26 +415,23 @@ export const SessionView: React.FC = () => {
       <div className="warm">{program.warmup}</div>
       <ol className="ex">
         {program.items.map((item: any, idx: number) => {
-          const exName = exerciseMap[item.exerciseId] ?? item.exerciseId;
+          const exercise = exerciseMap[item.exerciseId];
           return (
             <li key={idx} className={item.supersetWith ? 'ss' : ''}>
               <div className="row1">
                 <span className="num">{idx + 1}</span>
-                <h3>{exName}</h3>
+                <h3>{exercise?.name ?? item.exerciseId}</h3>
               </div>
               <div className="meta">
                 {formatSets(item.sets, item.repsLow, item.repsHigh) && <span className="sets">{formatSets(item.sets, item.repsLow, item.repsHigh)}</span>}
                 {item.restSec ? <span className="rest">отдых {item.restSec}с</span> : null}
               </div>
-              {item.t && <p className="tip">{item.t}</p>}
               <div className="wt">
                 <span>
                   Старт: <b>{item.startWeight ?? '-'}</b>{item.was ? ` · было ${item.was}` : ''}
                 </span>
-                <label>
-                  Мой вес <input type="text" inputMode="decimal" defaultValue="" />
-                </label>
               </div>
+              <HowTo cue={exercise?.cue} />
             </li>
           );
         })}

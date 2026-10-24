@@ -13,6 +13,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  height: calc(var(--header-h) + env(safe-area-inset-top));
   padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
   background: var(--glass);
   -webkit-backdrop-filter: var(--blur);
@@ -258,12 +259,6 @@
   color: var(--text);
 }
 
-.tip {
-  margin: 10px 0 0;
-  font-size: 14px;
-  color: var(--text-2);
-}
-
 .wt {
   display: flex;
   align-items: center;
@@ -271,16 +266,42 @@
   gap: 10px 12px;
   margin-top: 14px;
 }
-.wt label,
-.wt > div {
+/* «Как делать» */
+.howto {
+  margin-top: 10px;
+}
+.howto summary {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-height: var(--tap);
   font-size: 15px;
-  color: var(--text-2);
+  font-weight: 600;
+  color: var(--accent-ink);
+  cursor: pointer;
+  list-style: none;
 }
-.wt .pri {
-  flex: 1 1 100%;
+.howto summary::-webkit-details-marker {
+  display: none;
+}
+.howto summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.howto[open] summary::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+.howto p {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text-2);
+  animation: fade-in var(--dur-fast) var(--ease) both;
 }
 
 /* Active session: set rows */
@@ -323,6 +344,59 @@
   gap: 6px;
   font-size: 13px;
   color: var(--text-2);
+}
+/* Next set to do: weight and reps steppers on two lines */
+.set-row.current {
+  grid-template-columns: var(--tap) 1fr;
+  align-items: start;
+}
+.steppers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stepper {
+  display: grid;
+  grid-template-columns: var(--tap) 1fr var(--tap);
+  align-items: center;
+  border-radius: var(--radius-s);
+  background: var(--fill);
+}
+.step-btn {
+  height: var(--tap);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--accent-ink);
+  font-size: 22px;
+  font-weight: 500;
+  transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.step-btn:active {
+  transform: scale(0.9);
+  background: var(--fill-strong);
+}
+.stepper-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.stepper-field input[type="text"] {
+  width: 5ch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: right;
+  font-size: 20px;
+  font-weight: 700;
+}
+.stepper-field input[type="text"]:focus {
+  background: none;
 }
 .set-field input[type="text"] {
   width: 100%;
@@ -582,6 +656,68 @@ select:focus-visible {
 }
 .rest-timer-skip:active {
   transform: scale(0.96);
+}
+.rest-timer-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+}
+.rest-timer-actions .rest-timer-skip {
+  flex: 1;
+  min-width: 0;
+}
+.rest-timer-skip.secondary {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--fill-strong);
+}
+
+/* Collapsed rest timer: bar under the header */
+.rest-bar {
+  position: sticky;
+  top: calc(var(--header-h) + env(safe-area-inset-top) + 8px);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow: inset 0 0 0 0.5px var(--card-border);
+  animation: fade-in var(--dur) var(--ease) both;
+}
+.rest-bar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent-soft);
+  transform-origin: left;
+  transition: transform var(--dur-slow) linear;
+}
+.rest-bar-main,
+.rest-bar-skip {
+  position: relative;
+  min-height: var(--tap);
+  border: 0;
+  background: none;
+  font-size: 15px;
+}
+.rest-bar-main {
+  flex: 1;
+  padding: 0 14px;
+  text-align: left;
+  color: var(--text-2);
+}
+.rest-bar-main b {
+  margin-left: 6px;
+  font-size: 17px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.rest-bar-skip {
+  padding: 0 14px;
+  font-weight: 600;
+  color: var(--accent-ink);
 }
 
 /* ---------- Motion ---------- */
