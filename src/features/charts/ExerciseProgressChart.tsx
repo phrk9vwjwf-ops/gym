@@ -17,10 +17,12 @@ const ExerciseProgressChart: React.FC<{ series: Point[]; exerciseId: string }> =
   const maxValues = series.map(p => p.estimatedMax);
   const minMax = Math.min(...maxValues);
   const maxMax = Math.max(...maxValues);
-  const range = maxMax - minMax || 1;
+  const range = maxMax - minMax;
+  const dateSpan = maxDate.getTime() - minDate.getTime();
 
-  const x = (date: Date) => padding + ((date.getTime() - minDate.getTime()) / (maxDate.getTime() - minDate.getTime())) * (width - 2 * padding);
-  const y = (value: number) => height - padding - ((value - minMax) / range) * (height - 2 * padding);
+  // A single date or a flat series has zero span: center it instead of dividing by zero
+  const x = (date: Date) => dateSpan === 0 ? width / 2 : padding + ((date.getTime() - minDate.getTime()) / dateSpan) * (width - 2 * padding);
+  const y = (value: number) => range === 0 ? height / 2 : height - padding - ((value - minMax) / range) * (height - 2 * padding);
 
   const linePoints = series.map(p => `${x(new Date(p.date))},${y(p.estimatedMax)}`).join(' ');
 
@@ -41,7 +43,7 @@ const ExerciseProgressChart: React.FC<{ series: Point[]; exerciseId: string }> =
         <text x={width / 2} y={height - 10} textAnchor="middle" fontSize="12" fill="#95A2AE">
           {minDate.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })} — {maxDate.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })}
         </text>
-        <text x={10} y={height / 2} textAnchor="middle" transform="rotate(-90,10,${height / 2})" fontSize="12" fill="#95A2AE">
+        <text x={10} y={height / 2} textAnchor="middle" transform={`rotate(-90,10,${height / 2})`} fontSize="12" fill="#95A2AE">
           {Math.round(minMax)} — {Math.round(maxMax)} кг
         </text>
       </svg>

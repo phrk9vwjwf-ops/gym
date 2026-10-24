@@ -17,10 +17,12 @@ const WeightChart: React.FC<{ series: Point[] }> = ({ series }) => {
   const kgValues = series.map(p => p.kg);
   const minKg = Math.min(...kgValues);
   const maxKg = Math.max(...kgValues);
-  const kgRange = maxKg - minKg || 1;
+  const kgRange = maxKg - minKg;
+  const dateSpan = maxDate.getTime() - minDate.getTime();
 
-  const x = (date: Date) => padding + ((date.getTime() - minDate.getTime()) / (maxDate.getTime() - minDate.getTime())) * (width - 2 * padding);
-  const y = (kg: number) => height - padding - ((kg - minKg) / kgRange) * (height - 2 * padding);
+  // A single date or a flat series has zero span: center it instead of dividing by zero
+  const x = (date: Date) => dateSpan === 0 ? width / 2 : padding + ((date.getTime() - minDate.getTime()) / dateSpan) * (width - 2 * padding);
+  const y = (kg: number) => kgRange === 0 ? height / 2 : height - padding - ((kg - minKg) / kgRange) * (height - 2 * padding);
 
   const linePoints = series.map(p => `${x(new Date(p.date))},${y(p.kg)}`).join(' ');
 
@@ -42,7 +44,7 @@ const WeightChart: React.FC<{ series: Point[] }> = ({ series }) => {
         <text x={width / 2} y={height - 10} textAnchor="middle" fontSize="12" fill="#95A2AE">
           {minDate.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })} — {maxDate.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })}
         </text>
-        <text x={10} y={height / 2} textAnchor="middle" transform="rotate(-90,10,${height / 2})" fontSize="12" fill="#95A2AE">
+        <text x={10} y={height / 2} textAnchor="middle" transform={`rotate(-90,10,${height / 2})`} fontSize="12" fill="#95A2AE">
           {Math.round(minKg)} — {Math.round(maxKg)} кг
         </text>
       </svg>

@@ -1,5 +1,6 @@
 import { db } from '@/db';
 import { markBackupDone } from '@/lib/pwaUtils';
+import { localDate } from '@/lib/date';
 
 const APP = 'zal';
 const VERSION = 1;
@@ -14,12 +15,6 @@ export interface Backup {
 }
 
 export class BackupError extends Error {}
-
-const localDate = () => {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
 
 const allTables = () => TABLES.map(name => db.table(name));
 

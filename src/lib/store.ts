@@ -20,7 +20,9 @@ interface GymState {
   getSetsBySession: (sessionId: string) => Promise<SetEntry[]>;
   addSet: (set: Omit<SetEntry, 'id'>) => Promise<string>;
   // Body weight
+  // Latest entry on or before the date
   getBodyWeight: (date: string) => Promise<BodyWeight | undefined>;
+  // One entry per date: replaces that day's value
   addBodyWeight: (weight: Omit<BodyWeight, 'id'>) => Promise<string>;
   // Max test
   getMaxTest: (date: string, kind: 'pullup' | 'dip') => Promise<MaxTest | undefined>;
@@ -121,14 +123,19 @@ export const useGymStore = create<GymState>((set, get) => ({
   // Body weight
   getBodyWeight: async (date) => {
     await get().init();
-    return db.bodyweight.get(date);
+    return db.bodyweight.where('date').belowOrEqual(date).last();
   },
 
   addBodyWeight: async (weight) => {
     await get().init();
-    const id = crypto.randomUUID();
-    await db.bodyweight.put({ ...weight, id });
-    return id;
+    return db.transaction('rw', db.bodyweight, async () => {
+      // Reuse the day's entry and drop duplicates left by older versions
+      const existing = await db.bodyweight.where('date').equals(weight.date).primaryKeys();
+      const id = existing[0] ?? crypto.randomUUID();
+      await db.bodyweight.bulkDelete(existing.slice(1));
+      await db.bodyweight.put({ ...weight, id });
+      return id;
+    });
   },
 
   // Max test
